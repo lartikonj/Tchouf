@@ -103,7 +103,7 @@ export default function AddBusiness() {
       photos: [],
       createdBy: user?.id || 0,
     },
-    mode: 'onChange', // Enable real-time validation
+    mode: 'onSubmit', // Only validate on submit to avoid conflicts
   });
 
   // Set createdBy when user changes
@@ -173,8 +173,55 @@ export default function AddBusiness() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submitted with data:', data);
+    console.log('Current form state:', {
+      isValid: form.formState.isValid,
+      errors: form.formState.errors,
+      isSubmitting,
+      uploading
+    });
+
+    // Validate required fields
+    if (!data.name?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Business name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.category) {
+      toast({
+        title: "Validation Error", 
+        description: "Category is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.city) {
+      toast({
+        title: "Validation Error",
+        description: "City is required", 
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.address?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Address is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+
+      toast({
+        title: isEditMode ? 'Updating business...' : 'Creating business...',
+        description: 'Please wait while we ' + (isEditMode ? 'update' : 'create') + ' your business listing.',
+      });
 
       // Upload photos first
       const uploadedPhotoUrls = [...photoUrls];
@@ -202,26 +249,21 @@ export default function AddBusiness() {
         .trim();
 
       const businessData = {
-        name: data.name,
+        name: data.name.trim(),
         category: data.category,
-        description: data.description || '',
+        description: data.description?.trim() || '',
         city: data.city,
-        address: data.address,
-        location: data.location || '',
-        phone: data.phone || '',
-        email: data.email || '',
-        website: data.website || '',
+        address: data.address.trim(),
+        location: data.location?.trim() || '',
+        phone: data.phone?.trim() || '',
+        email: data.email?.trim() || '',
+        website: data.website?.trim() || '',
         slug,
         createdBy: user.id,
         photos: uploadedPhotoUrls,
       };
 
       console.log('Final business data to submit:', businessData);
-
-      toast({
-        title: isEditMode ? 'Updating business...' : 'Creating business...',
-        description: 'Please wait while we ' + (isEditMode ? 'update' : 'create') + ' your business listing.',
-      });
 
       // Determine the URL and method based on edit mode
       const url = isEditMode
@@ -518,14 +560,7 @@ export default function AddBusiness() {
                 <Button 
                   type="submit" 
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50"
-                  disabled={
-                    uploading || 
-                    isSubmitting || 
-                    !form.watch('name')?.trim() || 
-                    !form.watch('category') || 
-                    !form.watch('city') || 
-                    !form.watch('address')?.trim()
-                  }
+                  disabled={uploading || isSubmitting}
                 >
                   {uploading ? t('common.uploading') : isSubmitting ? (isEditMode ? 'Updating Business...' : 'Creating Business...') : (isEditMode ? 'Update Business' : t('addBusiness.addButton'))}
                 </Button>
