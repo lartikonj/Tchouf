@@ -47,14 +47,19 @@ export function useAuth() {
             const fullName = firebaseUser.displayName || '';
             const nameParts = fullName.split(' ');
             const firstName = nameParts[0] || '';
-            const lastName = nameParts.slice(1).join(' ') || '';
+            const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+            
+            // Generate proper displayName
+            const displayName = firstName && lastName 
+              ? `${firstName} ${lastName.charAt(0)}.`
+              : firebaseUser.displayName || `${firstName}`;
             
             const newUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
               firstName,
               lastName,
-              displayName: firebaseUser.displayName,
+              displayName,
               photoURL: firebaseUser.photoURL,
             };
 

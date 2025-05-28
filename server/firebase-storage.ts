@@ -411,6 +411,34 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
+  async updateUserProfile(userId: number, updates: { firstName?: string; lastName?: string; displayName?: string }): Promise<User | null> {
+    try {
+      const userRef = db.collection('users').doc(userId.toString());
+      const userDoc = await userRef.get();
+
+      if (!userDoc.exists) return null;
+
+      // Generate displayName if firstName and lastName are provided
+      let displayName = updates.displayName;
+      if (updates.firstName && updates.lastName) {
+        displayName = `${updates.firstName} ${updates.lastName.charAt(0)}.`;
+      }
+
+      const updateData = {
+        ...updates,
+        displayName: displayName || updates.displayName
+      };
+
+      await userRef.update(updateData);
+
+      const updatedDoc = await userRef.get();
+      return { id: userId, ...updatedDoc.data() } as User;
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      return null;
+    }
+  }
+
   async updateUserAdmin(userId: number, isAdmin: boolean): Promise<User | null> {
     try {
       const userRef = db.collection('users').doc(userId.toString());

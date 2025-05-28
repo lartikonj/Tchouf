@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -78,7 +77,7 @@ export default function UserProfile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
-  
+
   const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editReviewOpen, setEditReviewOpen] = useState(false);
@@ -138,13 +137,13 @@ export default function UserProfile() {
   const uploadPhotoMutation = useMutation({
     mutationFn: async (file: File) => {
       const photoUrl = await uploadFile(file, 'profile-photos');
-      
+
       const response = await fetch(`/api/users/${user?.id}/photo`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ photoURL: photoUrl }),
       });
-      
+
       if (!response.ok) throw new Error('Failed to update photo');
       return response.json();
     },
@@ -403,7 +402,7 @@ export default function UserProfile() {
                   </DialogContent>
                 </Dialog>
               </div>
-              
+
               <div className="flex-1 text-center sm:text-left">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   {user.firstName && user.lastName 
@@ -709,11 +708,33 @@ export default function UserProfile() {
                         <Label>First Name</Label>
                         <Input 
                           value={user.firstName || ''} 
-                          placeholder="Enter your first name"
-                          onChange={(e) => {
-                            // Update user state optimistically
-                            const updatedUser = { ...user, firstName: e.target.value };
-                            // Here you would call an API to update the user
+                          onChange={async (e) => {
+                            const newFirstName = e.target.value;
+                            try {
+                              const response = await fetch(`/api/users/${user.id}/profile`, {
+                                method: 'PATCH',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  firstName: newFirstName,
+                                  lastName: user.lastName
+                                }),
+                              });
+
+                              if (response.ok) {
+                                // Refresh auth state to get updated user data
+                                window.location.reload();
+                              } else {
+                                throw new Error('Failed to update profile');
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to update first name",
+                                variant: "destructive",
+                              });
+                            }
                           }}
                         />
                       </div>
@@ -721,11 +742,33 @@ export default function UserProfile() {
                         <Label>Last Name</Label>
                         <Input 
                           value={user.lastName || ''} 
-                          placeholder="Enter your last name"
-                          onChange={(e) => {
-                            // Update user state optimistically
-                            const updatedUser = { ...user, lastName: e.target.value };
-                            // Here you would call an API to update the user
+                          onChange={async (e) => {
+                            const newLastName = e.target.value;
+                            try {
+                              const response = await fetch(`/api/users/${user.id}/profile`, {
+                                method: 'PATCH',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                  firstName: user.firstName,
+                                  lastName: newLastName
+                                }),
+                              });
+
+                              if (response.ok) {
+                                // Refresh auth state to get updated user data
+                                window.location.reload();
+                              } else {
+                                throw new Error('Failed to update profile');
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to update last name",
+                                variant: "destructive",
+                              });
+                            }
                           }}
                         />
                       </div>
