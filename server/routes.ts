@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./firebase-storage";
 import { insertUserSchema, insertBusinessSchema, insertReviewSchema, insertClaimSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -24,6 +24,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       res.json(user);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/users/:id/admin", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { isAdmin } = z.object({ isAdmin: z.boolean() }).parse(req.body);
+      
+      // For now, we'll add a simple implementation
+      // In production, you'd want proper authentication middleware
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user admin status in Firebase
+      const db = require('firebase-admin/firestore').getFirestore();
+      await db.collection('users').doc(id.toString()).update({ isAdmin });
+      
+      const updatedUser = await storage.getUser(id);
+      res.json(updatedUser);
     } catch (error) {
       next(error);
     }
@@ -158,6 +181,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Claim not found" });
       }
       res.json(claim);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Setup route to make first user admin (for initial setup)
+  app.post("/api/setup/admin", async (req, res, next) => {
+    try {
+      const { uid } = z.object({ uid: z.string() }).parse(req.body);
+      
+      const user = await storage.getUserByUid(uid);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update user to be admin in Firebase
+      const { getFirestore } = require('firebase-admin/firestore');
+      const db = getFirestore();
+      await db.collection('users').doc(user.id.toString()).update({ isAdmin: true });
+      
+      const updatedUser = await storage.getUser(user.id);
+      res.json(updatedUser);
     } catch (error) {
       next(error);
     }

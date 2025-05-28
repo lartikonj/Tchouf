@@ -30,6 +30,15 @@ export default function AdminDashboard() {
     queryKey: ['/api/claims/pending'],
   });
 
+  // Fetch business stats
+  const { data: businessStats } = useQuery({
+    queryKey: ['/api/businesses'],
+    select: (data) => ({
+      total: data?.length || 0,
+      verified: data?.filter((b: any) => b.verified).length || 0,
+    }),
+  });
+
   const updateClaimMutation = useMutation({
     mutationFn: async ({ claimId, status }: { claimId: number; status: 'approved' | 'rejected' }) => {
       return apiRequest('PATCH', `/api/claims/${claimId}/status`, { status });
@@ -133,7 +142,9 @@ export default function AdminDashboard() {
                 </div>
                 <div className="ml-4">
                   <h3 className="text-sm font-medium text-gray-500">Total Businesses</h3>
-                  <p className="text-2xl font-bold text-gray-900">--</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {businessStats?.total || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -143,11 +154,13 @@ export default function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-100 rounded-lg">
-                  <User className="h-6 w-6 text-blue-600" />
+                  <Building className="h-6 w-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-                  <p className="text-2xl font-bold text-gray-900">--</p>
+                  <h3 className="text-sm font-medium text-gray-500">Verified Businesses</h3>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {businessStats?.verified || 0}
+                  </p>
                 </div>
               </div>
             </CardContent>
