@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Star, Upload } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useFirebaseStorage } from '@/hooks/use-firebase-storage';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -27,17 +27,40 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
   const { uploadReviewPhoto, uploading } = useFirebaseStorage();
   const queryClient = useQueryClient();
 
-  const isEdit = !!existingReview;
+  // Fetch existing review if not provided
+  const { data: fetchedExistingReview } = useQuery({
+    queryKey: [`/api/users/${user?.id}/reviews/business/${businessId}`],
+    enabled: !!user?.id && !!businessId && !existingReview && open,
+    retry: false,
+  });
 
-  const [rating, setRating] = useState(existingReview?.rating || 0);
+  const currentReview = existingReview || fetchedExistingReview;
+  const isEdit = !!currentReview;
+
+  const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState(existingReview?.comment || '');
+  const [comment, setComment] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
-  const [existingPhotoUrl, setExistingPhotoUrl] = useState(existingReview?.photoUrl || '');
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState('');
+
+  // Update form when existing review is loaded
+  useEffect(() => {
+    if (currentReview) {
+      setRating(currentReview.rating);
+      setComment(currentReview.comment || '');
+      setExistingPhotoUrl(currentReview.photoUrl || '');
+    } else {
+      // Reset form for new review
+      setRating(0);
+      setComment('');
+      setExistingPhotoUrl('');
+      setPhoto(null);
+    }
+  }, [currentReview, open]);
 
   const createReviewMutation = useMutation({
     mutationFn: async (reviewData: any) => {
-      const url = isEdit ? `/api/reviews/${existingReview?.id}` : '/api/reviews';
+      const url = isEdit ? `/api/reviews/${currentReview?.id}` : '/api/reviews';
       const method = isEdit ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -49,7 +72,8 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${isEdit ? 'update' : 'create'} review`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to ${isEdit ? 'update' : 'create'} review`);
       }
 
       return response.json();
@@ -58,19 +82,53 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
       queryClient.invalidateQueries({ queryKey: ['/api/reviews/recent'] });
       queryClient.invalidateQueries({ queryKey: ['/api/businesses/featured'] });
       queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}/reviews`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}`] });
       if (user?.id) {
         queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/reviews`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/reviews/business/${businessId}`] });
       }
       onOpenChange(false);
-      if (!isEdit) {
-        setRating(0);
-        setComment('');
-        setPhoto(null);
-        setExistingPhotoUrl('');
-      }
+      resetForm();
       toast({
         title: "Success",
         description: `Review ${isEdit ? 'updated' : 'submitted'} successfully!`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: t('common.error'),
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const deleteReviewMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/reviews/${currentReview?.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete review');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reviews/recent'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/businesses/featured'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}/reviews`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}`] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/reviews`] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/reviews/business/${businessId}`] });
+      }
+      onOpenChange(false);
+      resetForm();
+      toast({
+        title: "Success",
+        description: "Review deleted successfully!",
       });
     },
     onError: (error: any) => {
@@ -138,6 +196,12 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
     }
   };
 
+  const handleDeleteReview = () => {
+    if (window.confirm('Are you sure you want to delete this review? This action cannot be undone.')) {
+      deleteReviewMutation.mutate();
+    }
+  };
+
   const renderStars = () => {
     return Array.from({ length: 5 }, (_, i) => {
       const starValue = i + 1;
@@ -162,14 +226,14 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-          {isEdit ? 'Edit Your Review' : `Write a Review for ${businessName}`}
-        </DialogTitle>
-        <DialogDescription>
-          {isEdit 
-            ? 'Update your review to reflect your latest experience.'
-            : 'Share your experience with this business to help others make informed decisions.'
-          }
-        </DialogDescription>
+            {isEdit ? 'Edit Your Review' : `Write a Review for ${businessName}`}
+          </DialogTitle>
+          <DialogDescription>
+            {isEdit 
+              ? 'Update your review to reflect your latest experience.'
+              : 'Share your experience with this business to help others make informed decisions. You can only submit one review per business.'
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -242,16 +306,29 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
             >
               {t('form.cancel')}
             </Button>
+            
+            {isEdit && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteReview}
+                disabled={deleteReviewMutation.isPending}
+                className="flex-1"
+              >
+                {deleteReviewMutation.isPending ? 'Deleting...' : 'Delete Review'}
+              </Button>
+            )}
+            
             <Button
-            type="submit"
-            disabled={rating === 0 || createReviewMutation.isPending || uploading}
-            className="bg-[#D32F2F] hover:bg-[#B71C1C]"
-          >
-            {createReviewMutation.isPending || uploading 
-              ? (isEdit ? 'Updating...' : 'Submitting...') 
-              : (isEdit ? 'Update Review' : 'Submit Review')
-            }
-          </Button>
+              type="submit"
+              disabled={rating === 0 || createReviewMutation.isPending || uploading}
+              className="bg-[#D32F2F] hover:bg-[#B71C1C] flex-1"
+            >
+              {createReviewMutation.isPending || uploading 
+                ? (isEdit ? 'Updating...' : 'Submitting...') 
+                : (isEdit ? 'Update Review' : 'Submit Review')
+              }
+            </Button>
           </div>
         </form>
       </DialogContent>

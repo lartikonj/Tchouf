@@ -22,7 +22,7 @@ export default function BusinessDetail() {
   const { t } = useTranslation();
   const params = useParams();
   const businessId = parseInt(params.id || '0');
-  
+
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
 
@@ -116,16 +116,13 @@ export default function BusinessDetail() {
                 </div>
 
                 {/* Rating */}
-                <div className="flex items-center mb-4">
-                  <div className="flex mr-2">
-                    {renderStars(business.avgRating)}
+                
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="flex text-[#FF6F00]">
+                    {renderStars(business?.avgRating || 0)}
                   </div>
-                  <span className="text-lg font-semibold text-gray-900 mr-2">
-                    {business.avgRating.toFixed(1)}
-                  </span>
-                  <span className="text-gray-600">
-                    ({business.reviewCount} {t('reviews.rating')})
-                  </span>
+                  <span className="text-xl font-bold">{(business?.avgRating || 0).toFixed(1)}</span>
+                  <span className="text-gray-600">({business?.reviewCount || 0} reviews)</span>
                 </div>
 
                 {/* Description */}
@@ -174,7 +171,7 @@ export default function BusinessDetail() {
                             }
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="font-semibold text-gray-900">
@@ -184,15 +181,15 @@ export default function BusinessDetail() {
                               {new Date(review.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          
+
                           <div className="flex mb-3">
                             {renderStars(review.rating)}
                           </div>
-                          
+
                           {review.comment && (
                             <p className="text-gray-700 mb-3">{review.comment}</p>
                           )}
-                          
+
                           {review.photoUrl && (
                             <img
                               src={review.photoUrl}
@@ -204,7 +201,7 @@ export default function BusinessDetail() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {(!reviews || reviews.length === 0) && (
                     <div className="text-center py-8">
                       <p className="text-gray-500">No reviews yet. Be the first to review!</p>
@@ -221,7 +218,7 @@ export default function BusinessDetail() {
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center">
                     <MapPin className="h-5 w-5 text-gray-400 mr-3" />
@@ -230,21 +227,21 @@ export default function BusinessDetail() {
                       <p className="text-gray-600">{business.city}</p>
                     </div>
                   </div>
-                  
+
                   {business.phone && (
                     <div className="flex items-center">
                       <Phone className="h-5 w-5 text-gray-400 mr-3" />
                       <p className="text-gray-900">{business.phone}</p>
                     </div>
                   )}
-                  
+
                   {business.email && (
                     <div className="flex items-center">
                       <Mail className="h-5 w-5 text-gray-400 mr-3" />
                       <p className="text-gray-900">{business.email}</p>
                     </div>
                   )}
-                  
+
                   {business.website && (
                     <div className="flex items-center">
                       <Globe className="h-5 w-5 text-gray-400 mr-3" />
@@ -266,7 +263,7 @@ export default function BusinessDetail() {
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-                
+
                 <div className="space-y-3">
                   <Button 
                     onClick={() => setReviewFormOpen(true)}
@@ -274,7 +271,7 @@ export default function BusinessDetail() {
                   >
                     {t('business.writeReview')}
                   </Button>
-                  
+
                   {!business.claimedBy && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}

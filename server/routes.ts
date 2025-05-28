@@ -197,6 +197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/users/:userId/reviews/business/:businessId", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const businessId = parseInt(req.params.businessId);
+      const review = await storage.getUserReviewForBusiness(userId, businessId);
+      if (!review) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+      res.json(review);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.patch("/api/users/:id/photo", async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);

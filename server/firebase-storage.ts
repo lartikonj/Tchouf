@@ -192,6 +192,12 @@ export class FirebaseStorage implements IStorage {
 
   // Review operations
   async createReview(insertReview: InsertReview): Promise<Review> {
+    // Check if user already has a review for this business
+    const existingReview = await this.getUserReviewForBusiness(insertReview.userId, insertReview.businessId);
+    if (existingReview) {
+      throw new Error('User already has a review for this business. Please update your existing review instead.');
+    }
+
     const reviewsRef = db.collection('reviews');
     const counterRef = db.collection('counters').doc('reviews');
 
@@ -301,6 +307,28 @@ export class FirebaseStorage implements IStorage {
     }
 
     return reviewsWithBusiness;
+  }
+
+  async getUserReviewForBusiness(userId: number, businessId: number): Promise<Review | null> {
+    try {
+      const snapshot = await db.collection('reviews')
+        .where('userId', '==', userId)
+        .where('businessId', '==', businessId)
+        .get();
+
+      if (snapshot.empty) return null;
+
+      const doc = snapshot.docs[0];
+      const data = doc.data();
+      return {
+        id: parseInt(doc.id),
+        ...data,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+      } as Review;
+    } catch (error) {
+      console.error('Error getting user review for business:', error);
+      return null;
+    }
   }
 
   async updateUserPhoto(userId: number, photoURL: string): Promise<User | null> {
