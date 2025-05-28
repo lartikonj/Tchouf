@@ -1,4 +1,3 @@
-
 import { useParams } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +31,8 @@ export default function BusinessDetail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const params = useParams();
+  const identifier = params.identifier || '';
+  const businessIdInt = /^\d+$/.test(identifier) ? parseInt(identifier) : 0;
 
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
@@ -39,7 +40,6 @@ export default function BusinessDetail() {
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
   // Get businessId from params
-  const businessIdInt = parseInt(params.id || '0');
 
   // Early return after all hooks are called
   if (!businessIdInt || isNaN(businessIdInt)) {
@@ -48,15 +48,16 @@ export default function BusinessDetail() {
 
   // Get business data
   const { data: business, isLoading } = useQuery({
-    queryKey: ['/api/businesses', businessIdInt],
-    enabled: businessIdInt > 0,
+    queryKey: ['business', identifier],
+    queryFn: () => fetch(`/api/businesses/${identifier}`).then(res => res.json()),
+    enabled: !!identifier,
   });
 
   // Get reviews for the business
   const { data: reviews } = useQuery({
-    queryKey: [`/api/businesses/${businessIdInt}/reviews`],
-    queryFn: () => fetch(`/api/businesses/${businessIdInt}/reviews`).then(res => res.json()),
-    enabled: businessIdInt > 0,
+    queryKey: ['reviews', business?.id],
+    queryFn: () => fetch(`/api/businesses/${business?.id}/reviews?userId=${user?.id || ''}`).then(res => res.json()),
+    enabled: !!business?.id,
   });
 
   // Get current user data if authenticated

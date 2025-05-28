@@ -107,13 +107,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/businesses/:id', async (req, res) => {
+  app.get('/api/businesses/:identifier', async (req, res) => {
     try {
-      const businessId = parseInt(req.params.id);
-      const business = await storage.getBusiness(businessId);
+      const identifier = req.params.identifier;
+      let business;
+
+      // Check if identifier is a number (ID) or string (slug)
+      if (/^\d+$/.test(identifier)) {
+        const businessId = parseInt(identifier);
+        business = await storage.getBusiness(businessId);
+      } else {
+        business = await storage.getBusinessBySlug(identifier);
+      }
 
       if (!business) {
         return res.status(404).json({ error: 'Business not found' });
+      }
+
+      // Get owner information if business is claimed and verified
+      let owner = null;
+      if (business.claimedBy && business.verified) {
+        const ownerData = await storage.getUser(business.claimedBy);
+        if (ownerData) {
+          owner = {
+            id: ownerData.id,
+            email: ownerData.email,
+            displayName: ownerData.displayName,
+            photoURL: ownerData.photoURL,
+          };
+        }
       }
 
       // Ensure we have the complete business data structure
@@ -122,7 +144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Ensure hours field is available (might be stored as openingHours)
         hours: business.hours || business.openingHours || null,
         // Ensure owner information is properly structured
-        owner: business.owner || null,
+        owner,
         // Ensure verification status is clear
         verified: business.verified || false,
         claimedBy: business.claimedBy || null

@@ -104,8 +104,8 @@ export default function SearchResults() {
     }
   };
 
-  const handleViewDetails = (businessId: number) => {
-    navigate(`/business/${businessId}`);
+  const handleViewDetails = (identifier: string | number) => {
+    navigate(`/business/${identifier}`);
   };
 
   // Sort businesses based on selected criteria

@@ -96,7 +96,7 @@ export class MemStorage implements IStorage {
 
     const businessReviews = Array.from(this.reviews.values())
       .filter(review => review.businessId === id);
-    
+
     const claimedByUser = business.claimedBy ? this.users.get(business.claimedBy) : undefined;
     const createdByUser = this.users.get(business.createdBy);
 
@@ -117,15 +117,15 @@ export class MemStorage implements IStorage {
 
   async searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]> {
     const allBusinesses = Array.from(this.businesses.values());
-    
+
     return allBusinesses.filter(business => {
       const matchesQuery = !query || 
         business.name.toLowerCase().includes(query.toLowerCase()) ||
         business.description?.toLowerCase().includes(query.toLowerCase());
-      
+
       const matchesCity = !city || business.city.toLowerCase().includes(city.toLowerCase());
       const matchesCategory = !category || business.category.toLowerCase() === category.toLowerCase();
-      
+
       return matchesQuery && matchesCity && matchesCategory;
     });
   }
@@ -201,7 +201,7 @@ export class MemStorage implements IStorage {
   async getReviewsForBusiness(businessId: number): Promise<ReviewWithUser[]> {
     const businessReviews = Array.from(this.reviews.values())
       .filter(review => review.businessId === businessId);
-    
+
     const reviewsWithUsers: ReviewWithUser[] = [];
     for (const review of businessReviews) {
       const user = this.users.get(review.userId);
@@ -209,7 +209,7 @@ export class MemStorage implements IStorage {
         reviewsWithUsers.push({ ...review, user });
       }
     }
-    
+
     return reviewsWithUsers.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -217,7 +217,7 @@ export class MemStorage implements IStorage {
     const allReviews = Array.from(this.reviews.values())
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
-    
+
     const reviewsWithUsers: ReviewWithUser[] = [];
     for (const review of allReviews) {
       const user = this.users.get(review.userId);
@@ -225,7 +225,7 @@ export class MemStorage implements IStorage {
         reviewsWithUsers.push({ ...review, user });
       }
     }
-    
+
     return reviewsWithUsers;
   }
 
@@ -237,10 +237,10 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.reviews.set(id, review);
-    
+
     // Update business rating
     await this.updateBusinessRating(insertReview.businessId);
-    
+
     return review;
   }
 
@@ -250,16 +250,16 @@ export class MemStorage implements IStorage {
 
     const businessReviews = Array.from(this.reviews.values())
       .filter(review => review.businessId === businessId);
-    
+
     const totalRating = businessReviews.reduce((sum, review) => sum + review.rating, 0);
     const avgRating = businessReviews.length > 0 ? totalRating / businessReviews.length : 0;
-    
+
     const updatedBusiness = {
       ...business,
       avgRating,
       reviewCount: businessReviews.length,
     };
-    
+
     this.businesses.set(businessId, updatedBusiness);
   }
 
@@ -276,7 +276,7 @@ export class MemStorage implements IStorage {
   async getPendingClaims(): Promise<ClaimWithData[]> {
     const pendingClaims = Array.from(this.claims.values())
       .filter(claim => claim.status === "pending");
-    
+
     const claimsWithData: ClaimWithData[] = [];
     for (const claim of pendingClaims) {
       const business = this.businesses.get(claim.businessId);
@@ -285,7 +285,7 @@ export class MemStorage implements IStorage {
         claimsWithData.push({ ...claim, business, user });
       }
     }
-    
+
     return claimsWithData.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
   }
 
@@ -322,6 +322,113 @@ export class MemStorage implements IStorage {
     }
 
     return updatedClaim;
+  }
+
+  constructor() {
+    this.users = new Map();
+    this.businesses = new Map();
+    this.reviews = new Map();
+    this.claims = new Map();
+    this.currentUserId = 1;
+    this.currentBusinessId = 1;
+    this.currentReviewId = 1;
+    this.currentClaimId = 1;
+
+    // Sample data
+    this.users.set(1, {
+      id: 1,
+      uid: "sample-uid-1",
+      email: "user1@example.com",
+      firstName: "John",
+      lastName: "Doe",
+      createdAt: new Date(),
+    });
+
+    this.businesses.set(1, {
+      id: 1,
+      name: "Café Aroma",
+      slug: "cafe-aroma",
+      category: "restaurant",
+      description: "A cozy coffee shop with delicious pastries",
+      city: "Algiers",
+      address: "123 Main Street, Algiers",
+      phone: "+213555123456",
+      email: "contact@cafearoma.dz",
+      website: "https://cafearoma.dz",
+      photos: ["https://images.unsplash.com/photo-1554118811-1e0d58224f24"],
+      createdBy: 1,
+      claimedBy: null,
+      verified: false,
+      avgRating: 4.5,
+      reviewCount: 12,
+      createdAt: new Date("2024-01-15"),
+    });
+
+    this.businesses.set(2, {
+      id: 2,
+      name: "Pizza Palace",
+	  slug: "pizza-palace",
+      category: "restaurant",
+      description: "The best pizza in town",
+      city: "Algiers",
+      address: "456 Elm Street, Algiers",
+      phone: "+213555654321",
+      email: "info@pizzapalace.dz",
+      website: "https://pizzapalace.dz",
+      photos: ["https://images.unsplash.com/photo-1565007458633-89dbf8a87491"],
+      createdBy: 1,
+      claimedBy: null,
+      verified: false,
+      avgRating: 4.0,
+      reviewCount: 8,
+      createdAt: new Date("2024-02-01"),
+    });
+
+    this.businesses.set(3, {
+      id: 3,
+      name: "Salon de Thé Zohra",
+	  slug: "salon-de-the-zohra",
+      category: "cafe",
+      description: "Traditional Algerian tea and sweets",
+      city: "Oran",
+      address: "789 Oak Street, Oran",
+      phone: "+213555112233",
+      email: "zohra@salondethe.dz",
+      website: "https://salondethe.dz",
+      photos: ["https://images.unsplash.com/photo-1617922154574-cd56c2e18e84"],
+      createdBy: 1,
+      claimedBy: null,
+      verified: false,
+      avgRating: 4.8,
+      reviewCount: 15,
+      createdAt: new Date("2024-02-10"),
+    });
+
+    this.reviews.set(1, {
+      id: 1,
+      businessId: 1,
+      userId: 1,
+      rating: 5,
+      comment: "Great coffee and pastries!",
+      createdAt: new Date("2024-01-20"),
+    });
+
+    this.reviews.set(2, {
+      id: 2,
+      businessId: 1,
+      userId: 1,
+      rating: 4,
+      comment: "Nice atmosphere.",
+      createdAt: new Date("2024-01-25"),
+    });
+
+    this.claims.set(1, {
+      id: 1,
+      businessId: 2,
+      userId: 1,
+      status: "pending",
+      submittedAt: new Date("2024-02-05"),
+    });
   }
 }
 

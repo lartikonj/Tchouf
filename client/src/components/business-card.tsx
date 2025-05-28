@@ -8,7 +8,7 @@ import { Business } from '@shared/schema';
 interface BusinessCardProps {
   business: Business;
   onWriteReview?: (businessId: number) => void;
-  onViewDetails?: (businessId: number) => void;
+  onViewDetails?: (businessId: number | string) => void;
   onClaimBusiness?: (businessId: number) => void;
 }
 
@@ -46,7 +46,7 @@ export function BusinessCard({
           className="w-full h-full object-cover"
         />
       </div>
-      
+
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-2">
           <h4 className="text-xl font-semibold text-gray-900 line-clamp-1">
@@ -65,9 +65,9 @@ export function BusinessCard({
             )}
           </div>
         </div>
-        
+
         <p className="text-gray-600 mb-3 line-clamp-1">{business.category}</p>
-        
+
         {/* Rating */}
         <div className="flex items-center mb-3">
           <div className="flex">
@@ -77,7 +77,7 @@ export function BusinessCard({
             {business.avgRating.toFixed(1)} ({business.reviewCount} {t('reviews.rating')})
           </span>
         </div>
-        
+
         {/* Location */}
         <div className="flex items-center text-gray-600 mb-4">
           <MapPin className="h-4 w-4 mr-2" />
@@ -85,7 +85,7 @@ export function BusinessCard({
             {business.address}, {business.city}
           </span>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex space-x-3">
           <Button
@@ -95,7 +95,7 @@ export function BusinessCard({
           >
             {t('business.writeReview')}
           </Button>
-          
+
           {/* Only show claim button if onClaimBusiness is provided and business is not claimed */}
           {onClaimBusiness && !business.claimedBy ? (
             <Button
@@ -108,7 +108,7 @@ export function BusinessCard({
             </Button>
           ) : (
             <Button
-              onClick={() => onViewDetails?.(business.id)}
+              onClick={() => onViewDetails?.(business.slug || business.id.toString())}
               variant="outline"
               className="flex-1"
               size="sm"
