@@ -55,12 +55,12 @@ export default function BusinessDetail() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="h-64 bg-gray-200 rounded mb-6"></div>
-            <div className="h-6 bg-gray-200 rounded mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-6 sm:h-8 bg-gray-200 rounded w-1/2 sm:w-1/4 mb-4 sm:mb-6"></div>
+            <div className="h-48 sm:h-64 bg-gray-200 rounded mb-4 sm:mb-6"></div>
+            <div className="h-5 sm:h-6 bg-gray-200 rounded mb-3 sm:mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-full sm:w-3/4"></div>
           </div>
         </div>
       </div>
@@ -69,11 +69,11 @@ export default function BusinessDetail() {
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Business not found</h1>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Business not found</h1>
           <Link href="/">
-            <Button>Go Home</Button>
+            <Button className="w-full sm:w-auto">Go Home</Button>
           </Link>
         </div>
       </div>

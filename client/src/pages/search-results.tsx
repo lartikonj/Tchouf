@@ -41,6 +41,13 @@ export default function SearchResults() {
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<{ id: number; name: string } | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Get URL parameters
+  const searchParams = new URLSearchParams(window.location.search);
+  const query = searchParams.get('q') || '';
+  const city = searchParams.get('city') || '';
+  const category = searchParams.get('category') || '';
 
   // Get search parameters from URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -69,10 +76,10 @@ export default function SearchResults() {
     if (searchQuery) params.set('q', searchQuery);
     if (cityFilter) params.set('city', cityFilter);
     if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
-    
+
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
     window.history.replaceState({}, '', newUrl);
-    
+
     refetch();
   }, [searchQuery, cityFilter, categoryFilter, refetch]);
 
@@ -128,7 +135,7 @@ export default function SearchResults() {
               </Button>
             </Link>
           </div>
-          
+
           <SearchBar onSearch={handleSearch} className="max-w-4xl" />
         </div>
       </div>
