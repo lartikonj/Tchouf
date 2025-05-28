@@ -186,6 +186,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User reviews routes
+  app.get("/api/users/:id/reviews", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const reviews = await storage.getReviewsForUser(userId);
+      res.json(reviews);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.patch("/api/users/:id/photo", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { photoURL } = z.object({ photoURL: z.string() }).parse(req.body);
+      
+      const user = await storage.updateUserPhoto(id, photoURL);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.put("/api/reviews/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const reviewData = insertReviewSchema.parse(req.body);
+      const review = await storage.updateReview(id, reviewData);
+      if (!review) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+      res.json(review);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/reviews/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteReview(id);
+      if (!success) {
+        return res.status(404).json({ message: "Review not found" });
+      }
+      res.json({ message: "Review deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Setup route to make first user admin (for initial setup)
   app.post("/api/setup/admin", async (req, res, next) => {
     try {

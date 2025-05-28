@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -17,34 +17,60 @@ interface ReviewFormProps {
   onOpenChange: (open: boolean) => void;
   businessId: number;
   businessName: string;
+  existingReview?: any;
 }
 
-export function ReviewForm({ open, onOpenChange, businessId, businessName }: ReviewFormProps) {
+export function ReviewForm({ open, onOpenChange, businessId, businessName, existingReview }: ReviewFormProps) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { uploadReviewPhoto, uploading } = useFirebaseStorage();
   const queryClient = useQueryClient();
-  
-  const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
-  const [comment, setComment] = useState('');
+
+  const isEdit = !!existingReview;
+
+  const [rating, setRating] = useState(existingReview?.rating || 0);
+  const [comment, setComment] = useState(existingReview?.comment || '');
   const [photo, setPhoto] = useState<File | null>(null);
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState(existingReview?.photoUrl || '');
 
   const createReviewMutation = useMutation({
     mutationFn: async (reviewData: any) => {
-      return apiRequest('POST', '/api/reviews', reviewData);
+      const url = isEdit ? `/api/reviews/${existingReview?.id}` : '/api/reviews';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(reviewData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${isEdit ? 'update' : 'create'} review`);
+      }
+
+      return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: t('common.success'),
-        description: 'Review submitted successfully!',
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}/reviews`] });
       queryClient.invalidateQueries({ queryKey: ['/api/reviews/recent'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/businesses/featured'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessId}/reviews`] });
+      if (user?.id) {
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/reviews`] });
+      }
       onOpenChange(false);
-      resetForm();
+      if (!isEdit) {
+        setRating(0);
+        setComment('');
+        setPhoto(null);
+        setExistingPhotoUrl('');
+      }
+      toast({
+        title: "Success",
+        description: `Review ${isEdit ? 'updated' : 'submitted'} successfully!`,
+      });
     },
     onError: (error: any) => {
       toast({
@@ -60,11 +86,12 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName }: Rev
     setHoveredRating(0);
     setComment('');
     setPhoto(null);
+    setExistingPhotoUrl('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: t('common.error'),
@@ -84,7 +111,7 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName }: Rev
     }
 
     try {
-      let photoUrl = '';
+      let photoUrl = existingPhotoUrl;
       if (photo) {
         photoUrl = await uploadReviewPhoto(photo);
       }
@@ -133,8 +160,15 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName }: Rev
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('reviews.writeReview')}</DialogTitle>
-          <p className="text-muted-foreground">{businessName}</p>
+          <DialogTitle>
+          {isEdit ? 'Edit Your Review' : `Write a Review for ${businessName}`}
+        </DialogTitle>
+        <DialogDescription>
+          {isEdit 
+            ? 'Update your review to reflect your latest experience.'
+            : 'Share your experience with this business to help others make informed decisions.'
+          }
+        </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -176,6 +210,26 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName }: Rev
                 {photo ? photo.name : 'Add Photo'}
               </Button>
             </div>
+             {(photo || existingPhotoUrl) && (
+              <div className="mt-2">
+                <img 
+                  src={photo ? URL.createObjectURL(photo) : existingPhotoUrl} 
+                  alt="Preview" 
+                  className="w-32 h-32 object-cover rounded-lg"
+                />
+                {existingPhotoUrl && !photo && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setExistingPhotoUrl('')}
+                  >
+                    Remove Photo
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex space-x-3">
@@ -188,12 +242,15 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName }: Rev
               {t('form.cancel')}
             </Button>
             <Button
-              type="submit"
-              disabled={rating === 0 || createReviewMutation.isPending || uploading}
-              className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C]"
-            >
-              {t('reviews.submit')}
-            </Button>
+            type="submit"
+            disabled={rating === 0 || createReviewMutation.isPending || uploading}
+            className="bg-[#D32F2F] hover:bg-[#B71C1C]"
+          >
+            {createReviewMutation.isPending || uploading 
+              ? (isEdit ? 'Updating...' : 'Submitting...') 
+              : (isEdit ? 'Update Review' : 'Submit Review')
+            }
+          </Button>
           </div>
         </form>
       </DialogContent>

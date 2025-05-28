@@ -99,7 +99,7 @@ export class FirebaseStorage implements IStorage {
         .where('featured', '==', true)
         .limit(limit)
         .get();
-      
+
       if (snapshot.empty) {
         // If no featured businesses, return top-rated ones
         const fallbackSnapshot = await db.collection('businesses')
@@ -108,7 +108,7 @@ export class FirebaseStorage implements IStorage {
           .get();
         return fallbackSnapshot.docs.map(doc => doc.data() as Business);
       }
-      
+
       return snapshot.docs.map(doc => doc.data() as Business);
     } catch (error) {
       console.error('Error getting featured businesses:', error);
@@ -119,7 +119,7 @@ export class FirebaseStorage implements IStorage {
   async searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]> {
     try {
       let collectionRef = db.collection('businesses');
-      
+
       // Apply filters
       if (category) {
         collectionRef = collectionRef.where('category', '==', category);
@@ -127,10 +127,10 @@ export class FirebaseStorage implements IStorage {
       if (city) {
         collectionRef = collectionRef.where('city', '==', city);
       }
-      
+
       const snapshot = await collectionRef.get();
       let businesses = snapshot.docs.map(doc => doc.data() as Business);
-      
+
       // Filter by query if provided
       if (query) {
         const lowerQuery = query.toLowerCase();
@@ -140,7 +140,7 @@ export class FirebaseStorage implements IStorage {
           business.category.toLowerCase().includes(lowerQuery)
         );
       }
-      
+
       return businesses;
     } catch (error) {
       console.error('Error searching businesses:', error);
@@ -226,76 +226,139 @@ export class FirebaseStorage implements IStorage {
   }
 
   async getRecentReviews(limit = 6): Promise<ReviewWithUser[]> {
-    try {
-      const snapshot = await db.collection('reviews').get();
+    const reviewsRef = db.collection('reviews');
 
-      const reviews = await Promise.all(
-        snapshot.docs.map(async (doc) => {
-          const reviewData = doc.data();
-          const user = await this.getUser(reviewData.userId);
-          const business = await this.getBusiness(reviewData.businessId);
+    const snapshot = await reviewsRef
+      .orderBy('createdAt', 'desc')
+      .limit(limit)
+      .get();
 
-          return {
-            ...reviewData,
-            createdAt: reviewData.createdAt?.toDate ? reviewData.createdAt.toDate() : new Date(reviewData.createdAt),
-            user: user || { id: reviewData.userId, email: 'Unknown', uid: '', createdAt: new Date(), isAdmin: false },
-            business
-          } as ReviewWithUser;
-        })
-      );
+    const reviewsWithUsers: ReviewWithUser[] = [];
+    for (const doc of snapshot.docs) {
+      const review = { id: parseInt(doc.id), ...doc.data() } as Review;
+      const userDoc = await db.collection('users').doc(review.userId.toString()).get();
 
-      return reviews
-        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-        .slice(0, limit);
-    } catch (error) {
-      console.error('Error getting recent reviews:', error);
-      return [];
+      if (userDoc.exists) {
+        const user = { id: review.userId, ...userDoc.data() } as User;
+        reviewsWithUsers.push({ ...review, user });
+      }
     }
+
+    return reviewsWithUsers;
   }
 
-  async createReview(insertReview: InsertReview): Promise<Review> {
+  async getReviewsForUser(userId: number): Promise<any[]> {
     const reviewsRef = db.collection('reviews');
-    const counterRef = db.collection('counters').doc('reviews');
 
-    const result = await db.runTransaction(async (transaction) => {
-      // Do all reads first
-      const counterDoc = await transaction.get(counterRef);
-      const businessRef = db.collection('businesses').doc(insertReview.businessId.toString());
-      const businessDoc = await transaction.get(businessRef);
+    const snapshot = await reviewsRef
+      .where('userId', '==', userId)
+      .orderBy('createdAt', 'desc')
+      .get();
 
-      const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
-      const newId = currentId + 1;
+    const reviewsWithBusiness = [];
+    for (const doc of snapshot.docs) {
+      const review = { id: parseInt(doc.id), ...doc.data() };
+      const businessDoc = await db.collection('businesses').doc(review.businessId.toString()).get();
 
-      const review: Review = {
-        ...insertReview,
-        id: newId,
-        photos: insertReview.photos || [],
-        createdAt: new Date(),
-      };
-
-      // Do all writes after reads
-      transaction.set(counterRef, { count: newId });
-      transaction.set(reviewsRef.doc(newId.toString()), review);
-
-      // Update business average rating
       if (businessDoc.exists) {
-        const businessData = businessDoc.data()!;
-        const currentReviewCount = businessData.reviewCount || 0;
-        const currentAvgRating = businessData.avgRating || 0;
-
-        const newReviewCount = currentReviewCount + 1;
-        const newAvgRating = ((currentAvgRating * currentReviewCount) + insertReview.rating) / newReviewCount;
-
-        transaction.update(businessRef, {
-          reviewCount: newReviewCount,
-          avgRating: newAvgRating
+        const business = { id: review.businessId, ...businessDoc.data() };
+        reviewsWithBusiness.push({ 
+          ...review, 
+          business: {
+            id: business.id,
+            name: business.name,
+            category: business.category
+          }
         });
       }
+    }
 
-      return review;
+    return reviewsWithBusiness;
+  }
+
+  async updateUserPhoto(userId: number, photoURL: string): Promise<User | null> {
+    const userRef = db.collection('users').doc(userId.toString());
+
+    await userRef.update({ photoURL });
+
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) return null;
+
+    return { id: userId, ...userDoc.data() } as User;
+  }
+
+  async deleteUser(userId: number): Promise<boolean> {
+    const userRef = db.collection('users').doc(userId.toString());
+
+    // Also delete user's reviews and businesses
+    const reviewsSnapshot = await db.collection('reviews').where('userId', '==', userId).get();
+    const businessesSnapshot = await db.collection('businesses').where('createdBy', '==', userId).get();
+
+    const batch = db.batch();
+
+    reviewsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+    businessesSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+    batch.delete(userRef);
+
+    await batch.commit();
+    return true;
+  }
+
+  async updateReview(reviewId: number, updateData: Partial<InsertReview>): Promise<Review | null> {
+    const reviewRef = db.collection('reviews').doc(reviewId.toString());
+    const reviewDoc = await reviewRef.get();
+
+    if (!reviewDoc.exists) return null;
+
+    await reviewRef.update(updateData);
+
+    const updatedDoc = await reviewRef.get();
+    const review = { id: reviewId, ...updatedDoc.data() } as Review;
+
+    // Update business average rating
+    await this.updateBusinessRating(review.businessId);
+
+    return review;
+  }
+
+  async deleteReview(reviewId: number): Promise<boolean> {
+    const reviewRef = db.collection('reviews').doc(reviewId.toString());
+    const reviewDoc = await reviewRef.get();
+
+    if (!reviewDoc.exists) return false;
+
+    const reviewData = reviewDoc.data();
+    await reviewRef.delete();
+
+    // Update business average rating
+    if (reviewData?.businessId) {
+      await this.updateBusinessRating(reviewData.businessId);
+    }
+
+    return true;
+  }
+
+  private async updateBusinessRating(businessId: number): Promise<void> {
+    const reviewsSnapshot = await db.collection('reviews')
+      .where('businessId', '==', businessId)
+      .get();
+
+    if (reviewsSnapshot.empty) {
+      await db.collection('businesses').doc(businessId.toString()).update({
+        avgRating: 0,
+        reviewCount: 0
+      });
+      return;
+    }
+
+    const reviews = reviewsSnapshot.docs.map(doc => doc.data());
+    const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const avgRating = totalRating / reviews.length;
+
+    await db.collection('businesses').doc(businessId.toString()).update({
+      avgRating: Math.round(avgRating * 10) / 10,
+      reviewCount: reviews.length
     });
-
-    return result;
   }
 
   // Claim operations

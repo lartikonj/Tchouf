@@ -9,6 +9,7 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import Home from '@/pages/home';
 import BusinessDetail from '@/pages/business-detail';
+import UserProfile from "./pages/user-profile";
 import AddBusiness from '@/pages/add-business';
 import SearchResults from '@/pages/search-results';
 import AdminDashboard from '@/pages/admin-dashboard';
@@ -19,6 +20,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/business/:id" component={BusinessDetail} />
+      <Route path="/profile" component={UserProfile} />
       <Route path="/add-business" component={AddBusiness} />
       <Route path="/search" component={SearchResults} />
       <Route path="/admin" component={AdminDashboard} />
