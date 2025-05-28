@@ -24,13 +24,22 @@ import { Link, useLocation } from 'wouter';
 
 export default function BusinessDetail() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const navigate = useLocation()[1];
   const params = useParams();
   const businessId = parseInt(params.id || '0');
 
+  const { user } = useAuth();
+
+  // All useState hooks must be at the top level
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [userReview, setUserReview] = useState<any | null>(null);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
-  const [location, navigate] = useLocation();
+  const [userClaim, setUserClaim] = useState<any | null>(null);
 
   const { data: business, isLoading } = useQuery({
     queryKey: ['/api/businesses', businessId],
