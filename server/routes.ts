@@ -1,3 +1,14 @@
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./firebase-storage";
@@ -12,7 +23,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, return empty response
       res.json(null);
     } catch (error) {
-      next(error);
+      console.error('Error in /api/user:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
   });
 
@@ -69,7 +81,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const businesses = await storage.getBusinesses(limit, offset);
       res.json(businesses);
     } catch (error) {
-      next(error);
+      console.error('Error fetching businesses:', error);
+      res.status(500).json({ error: 'Failed to fetch businesses' });
     }
   });
 
