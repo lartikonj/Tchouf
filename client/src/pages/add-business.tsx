@@ -78,16 +78,15 @@ export default function AddBusiness() {
   const editBusinessId = searchParams.get('edit');
   const isEditMode = !!editBusinessId;
 
-  const { data: businessData, isLoading: isBusinessLoading } = useQuery(
-    ['business', editBusinessId],
-    async () => {
+  const { data: businessData, isLoading: isBusinessLoading } = useQuery({
+    queryKey: ['business', editBusinessId],
+    queryFn: async () => {
       if (!editBusinessId) return null;
-      return apiRequest('GET', `/api/businesses/${editBusinessId}`);
+      const response = await apiRequest('GET', `/api/businesses/${editBusinessId}`);
+      return response.json();
     },
-    {
-      enabled: isEditMode, // Only run query if in edit mode
-    }
-  );
+    enabled: isEditMode, // Only run query if in edit mode
+  });
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
