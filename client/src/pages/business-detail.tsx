@@ -1,3 +1,4 @@
+
 import { useParams } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -24,8 +25,7 @@ import {
   ThumbsUp,
   Flag
 } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
-import { useRef } from 'react';
+import { Link } from 'wouter';
 
 export default function BusinessDetail() {
   const { t } = useTranslation();
@@ -33,13 +33,10 @@ export default function BusinessDetail() {
   const { toast } = useToast();
   const params = useParams();
 
-  // Always call hooks in the same order
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
-  const [photoViewOpen, setPhotoViewOpen] = useState(false);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
   // Get businessId from params
   const businessIdInt = parseInt(params.id || '0');
@@ -49,42 +46,27 @@ export default function BusinessDetail() {
     return <div>Invalid business ID</div>;
   }
 
-  // All useState hooks must be at the top level
-  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
-  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userReview, setUserReview] = useState<any | null>(null);
-  const [userClaim, setUserClaim] = useState<any | null>(null);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
-
-  // All useQuery hooks must be at the top level
+  // Get business data
   const { data: business, isLoading } = useQuery({
     queryKey: ['/api/businesses', businessIdInt],
     enabled: businessIdInt > 0,
   });
 
+  // Get reviews for the business
   const { data: reviews } = useQuery({
     queryKey: [`/api/businesses/${businessIdInt}/reviews`],
-    queryFn: () => {
-      const url = new URL(`/api/businesses/${businessIdInt}/reviews`, window.location.origin);
-      if (currentUser?.id) {
-        url.searchParams.append('userId', currentUser.id.toString());
-      }
-      return fetch(url.toString()).then(res => res.json());
-    },
+    queryFn: () => fetch(`/api/businesses/${businessIdInt}/reviews`).then(res => res.json()),
     enabled: businessIdInt > 0,
   });
 
-  // Get user data from auth context - moved to top level
+  // Get current user data if authenticated
   const { data: currentUser } = useQuery({
-    queryKey: ['/api/user'],
-    enabled: !!user,
+    queryKey: ['/api/users/uid', user?.uid],
+    queryFn: () => fetch(`/api/users/uid/${user?.uid}`).then(res => res.json()),
+    enabled: !!user?.uid,
   });
 
-  // Get user's claims - moved to top level
+  // Get user's claims if authenticated
   const { data: userClaims } = useQuery({
     queryKey: [`/api/users/${currentUser?.id}/claims`],
     queryFn: () => fetch(`/api/users/${currentUser?.id}/claims`).then(res => res.json()),
@@ -123,7 +105,7 @@ export default function BusinessDetail() {
       });
       return;
     }
-    likeMutation.mutate({ reviewId, userId: currentUser.id || user.id });
+    likeMutation.mutate({ reviewId, userId: currentUser.id });
   };
 
   const handleReportReview = (reviewId: number) => {
@@ -191,17 +173,6 @@ export default function BusinessDetail() {
     (business.claimedBy === currentUser.id)
   );
 
-  // Debug logging - remove after testing
-  console.log('Business owner check:', {
-    currentUserId: currentUser?.id,
-    businessCreatedBy: business?.createdBy,
-    businessClaimedBy: business?.claimedBy,
-    businessVerified: business?.verified,
-    businessOwner: business?.owner,
-    userClaims: userClaims,
-    isBusinessOwner
-  });
-
   // Helper function to mask owner name
   const maskOwnerName = (displayName: string | null, email: string) => {
     if (displayName) {
@@ -215,8 +186,15 @@ export default function BusinessDetail() {
     return email.split('@')[0];
   };
 
-  const handleClaimBusiness = () => {
-    // Handle the claim business logic here
+  // Helper function to format working hours
+  const formatWorkingHours = (hours: any) => {
+    if (typeof hours === 'string') {
+      return hours;
+    }
+    if (typeof hours === 'object' && hours !== null) {
+      return Object.entries(hours).map(([day, time]) => `${day}: ${time}`).join(', ');
+    }
+    return 'Contact business for hours';
   };
 
   return (
@@ -236,32 +214,33 @@ export default function BusinessDetail() {
             {/* Business Header */}
             <Card>
               <CardContent className="p-4 sm:p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
+                    <p className="text-gray-600 text-lg mb-3">{business.category}</p>
+                  </div>
 
-
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
-
-                <p className="text-gray-600 text-lg mb-2">{business.category}</p>
-
-                {/* Business Status Badge */}
-                <div className="flex items-center space-x-2 mb-2">
-                  {business.verified ? (
-                    <Badge className="bg-green-100 text-green-800 border-green-300">
-                      ✓ Verified Business
-                    </Badge>
-                  ) : business.claimedBy ? (
-                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                      Claim Pending Verification
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-gray-100 text-gray-700 border-gray-300">
-                      Unverified Business
-                    </Badge>
-                  )}
+                  {/* Business Status Badges */}
+                  <div className="flex flex-col items-end space-y-2">
+                    {business.verified ? (
+                      <Badge className="bg-green-100 text-green-800 border-green-300">
+                        ✓ Verified Business
+                      </Badge>
+                    ) : business.claimedBy ? (
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                        Claim Pending Verification
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                        Unverified Business
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {/* Business Owner Info - Only show if business is verified and has an owner */}
                 {business.verified && business.owner && (
-                  <div className="flex items-center text-gray-600 mb-2">
+                  <div className="flex items-center text-gray-600 mb-4">
                     <Building className="h-5 w-5 mr-2" />
                     <span className="font-medium">
                       Owned by {maskOwnerName(business.owner.displayName, business.owner.email)}
@@ -269,30 +248,13 @@ export default function BusinessDetail() {
                   </div>
                 )}
 
-                <div className="flex items-center text-gray-600 mb-2">
+                {/* Location */}
+                <div className="flex items-center text-gray-600 mb-4">
                   <MapPin className="h-5 w-5 mr-2" />
-                  <span>{business.address}</span>
+                  <span>{business.address}{business.city ? `, ${business.city}` : ''}</span>
                 </div>
 
-                {business.description && (
-                  <div className="mb-4">
-                    <p className="text-gray-700">{business.description}</p>
-                  </div>
-                )}
-
-                {(business.hours || business.openingHours) && (
-                  <div className="mb-4">
-                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      Opening Hours
-                    </h4>
-                    <p className="text-gray-600">{business.hours || business.openingHours}</p>
-                  </div>
-                )}
-
-
                 {/* Rating */}
-
                 <div className="flex items-center space-x-2 mb-4">
                   <div className="flex text-[#FF6F00]">
                     {renderStars(business?.avgRating || 0)}
@@ -303,20 +265,37 @@ export default function BusinessDetail() {
 
                 {/* Description */}
                 {business.description && (
-                  <p className="text-gray-700 mb-6">{business.description}</p>
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">About</h4>
+                    <p className="text-gray-700">{business.description}</p>
+                  </div>
+                )}
+
+                {/* Working Hours */}
+                {(business.hours || business.openingHours) && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <Clock className="h-4 w-4 mr-2" />
+                      Working Hours
+                    </h4>
+                    <p className="text-gray-600">{formatWorkingHours(business.hours || business.openingHours)}</p>
+                  </div>
                 )}
 
                 {/* Photos */}
                 {business.photos && business.photos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {business.photos.slice(0, 6).map((photo: string, index: number) => (
-                      <img
-                        key={index}
-                        src={photo}
-                        alt={`${business.name} photo ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                    ))}
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">Photos</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {business.photos.slice(0, 6).map((photo: string, index: number) => (
+                        <img
+                          key={index}
+                          src={photo}
+                          alt={`${business.name} photo ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+                        />
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -387,7 +366,7 @@ export default function BusinessDetail() {
                               <span>{review.likeCount || 0}</span>
                             </Button>
 
-                            {user && currentUser && (currentUser.id !== review.userId || user.id !== review.userId) && (
+                            {user && currentUser && (currentUser.id !== review.userId) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -422,25 +401,29 @@ export default function BusinessDetail() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
 
                 <div className="space-y-3">
-                  <div className="flex items-center">
-                    <MapPin className="h-5 w-5 text-gray-400 mr-3" />
+                  <div className="flex items-start">
+                    <MapPin className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
                     <div>
                       <p className="text-gray-900">{business.address}</p>
-                      <p className="text-gray-600">{business.city}</p>
+                      {business.city && <p className="text-gray-600">{business.city}</p>}
                     </div>
                   </div>
 
                   {business.phone && (
                     <div className="flex items-center">
                       <Phone className="h-5 w-5 text-gray-400 mr-3" />
-                      <p className="text-gray-900">{business.phone}</p>
+                      <a href={`tel:${business.phone}`} className="text-gray-900 hover:text-[#D32F2F]">
+                        {business.phone}
+                      </a>
                     </div>
                   )}
 
                   {business.email && (
                     <div className="flex items-center">
                       <Mail className="h-5 w-5 text-gray-400 mr-3" />
-                      <p className="text-gray-900">{business.email}</p>
+                      <a href={`mailto:${business.email}`} className="text-gray-900 hover:text-[#D32F2F]">
+                        {business.email}
+                      </a>
                     </div>
                   )}
 
@@ -448,7 +431,7 @@ export default function BusinessDetail() {
                     <div className="flex items-center">
                       <Globe className="h-5 w-5 text-gray-400 mr-3" />
                       <a 
-                        href={business.website} 
+                        href={business.website.startsWith('http') ? business.website : `https://${business.website}`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-[#D32F2F] hover:underline"
