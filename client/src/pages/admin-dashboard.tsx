@@ -461,17 +461,17 @@ export default function AdminDashboard() {
                         <div className="flex items-center mb-4">
                           <Avatar className="w-8 h-8 mr-3">
                             <AvatarFallback className="bg-[#D32F2F] text-white text-sm">
-                              {claim.user.displayName 
+                              {claim.user?.displayName 
                                 ? claim.user.displayName.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
-                                : claim.user.email[0].toUpperCase()
+                                : claim.user?.email?.[0]?.toUpperCase() || 'U'
                               }
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium text-gray-900">
-                              {claim.user.displayName || claim.user.email.split('@')[0]}
+                              {claim.user?.displayName || claim.user?.email?.split('@')[0] || 'Unknown User'}
                             </p>
-                            <p className="text-sm text-gray-600">{claim.user.email}</p>
+                            <p className="text-sm text-gray-600">{claim.user?.email || 'No email'}</p>
                           </div>
                         </div>
 
