@@ -19,7 +19,7 @@ import { ArrowLeft, Filter, MapPin, Search } from 'lucide-react';
 import { Link } from 'wouter';
 
 const categories = [
-  { value: '', label: 'All Categories' },
+  { value: 'all', label: 'All Categories' },
   { value: 'restaurants', label: 'Restaurants' },
   { value: 'shopping', label: 'Shopping' },
   { value: 'services', label: 'Services' },
@@ -46,7 +46,7 @@ export default function SearchResults() {
   const urlParams = new URLSearchParams(window.location.search);
   const [searchQuery, setSearchQuery] = useState(urlParams.get('q') || '');
   const [cityFilter, setCityFilter] = useState(urlParams.get('city') || '');
-  const [categoryFilter, setCategoryFilter] = useState(urlParams.get('category') || '');
+  const [categoryFilter, setCategoryFilter] = useState(urlParams.get('category') || 'all');
   const [sortBy, setSortBy] = useState('relevance');
 
   // Build API URL with filters
@@ -54,7 +54,7 @@ export default function SearchResults() {
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
     if (cityFilter) params.set('city', cityFilter);
-    if (categoryFilter) params.set('category', categoryFilter);
+    if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
     return `/api/businesses/search?${params.toString()}`;
   };
 
@@ -68,7 +68,7 @@ export default function SearchResults() {
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
     if (cityFilter) params.set('city', cityFilter);
-    if (categoryFilter) params.set('category', categoryFilter);
+    if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
     
     const newUrl = `/search${params.toString() ? `?${params.toString()}` : ''}`;
     window.history.replaceState({}, '', newUrl);
@@ -182,12 +182,12 @@ export default function SearchResults() {
                   </div>
 
                   {/* Clear Filters */}
-                  {(categoryFilter || cityFilter) && (
+                  {(categoryFilter && categoryFilter !== 'all' || cityFilter) && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setCategoryFilter('');
+                        setCategoryFilter('all');
                         setCityFilter('');
                       }}
                       className="w-full"
@@ -274,7 +274,7 @@ export default function SearchResults() {
                     onClick={() => {
                       setSearchQuery('');
                       setCityFilter('');
-                      setCategoryFilter('');
+                      setCategoryFilter('all');
                     }}
                   >
                     Clear Search
