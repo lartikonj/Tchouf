@@ -344,6 +344,56 @@ export default function UserProfile() {
     setTempDisplayName('');
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadPhotoMutation.mutate(file);
+    }
+  };
+
+  const handleEditReview = (review: ReviewWithBusiness) => {
+    setSelectedReview(review);
+    setEditReviewOpen(true);
+  };
+
+  const handleDeleteReview = (reviewId: number) => {
+    deleteReviewMutation.mutate(reviewId);
+  };
+
+  const handleEditClaim = (claim: ClaimWithBusiness) => {
+    setSelectedClaim(claim);
+    setEditClaimOpen(true);
+  };
+
+  const handleDeleteClaim = (claim: ClaimWithBusiness) => {
+    setSelectedClaim(claim);
+    setClaimDeleteDialogOpen(true);
+  };
+
+  const handleUpdateClaim = async () => {
+    if (!selectedClaim || !newProofFile) return;
+
+    try {
+      const proofUrl = await uploadFile(newProofFile, 'claim-proofs');
+      editClaimMutation.mutate({
+        claimId: selectedClaim.id,
+        proofUrl,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload proof document",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDeleteClaim = () => {
+    if (selectedClaim) {
+      deleteClaimMutation.mutate(selectedClaim.id);
+    }
+  };
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -911,7 +961,7 @@ export default function UserProfile() {
             <DialogDescription>
               Update the proof document for "{selectedClaim?.business.name}"
             </DialogDescription>
-          </Dialog          </DialogHeader>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="current-proof">Current Proof Document</Label>
