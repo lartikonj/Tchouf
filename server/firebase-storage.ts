@@ -83,6 +83,113 @@ export class FirebaseStorage implements IStorage {
     return { ...business, reviews };
   }
 
+  async getBusinesses(limit = 20, offset = 0): Promise<Business[]> {
+    try {
+      const snapshot = await db.collection('businesses').limit(limit).offset(offset).get();
+      return snapshot.docs.map(doc => doc.data() as Business);
+    } catch (error) {
+      console.error('Error getting businesses:', error);
+      return [];
+    }
+  }
+
+  async getFeaturedBusinesses(limit = 6): Promise<Business[]> {
+    try {
+      const snapshot = await db.collection('businesses')
+        .where('featured', '==', true)
+        .limit(limit)
+        .get();
+      
+      if (snapshot.empty) {
+        // If no featured businesses, return top-rated ones
+        const fallbackSnapshot = await db.collection('businesses')
+          .orderBy('avgRating', 'desc')
+          .limit(limit)
+          .get();
+        return fallbackSnapshot.docs.map(doc => doc.data() as Business);
+      }
+      
+      return snapshot.docs.map(doc => doc.data() as Business);
+    } catch (error) {
+      console.error('Error getting featured businesses:', error);
+      return [];
+    }
+  }
+
+  async searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]> {
+    try {
+      let collectionRef = db.collection('businesses');
+      
+      // Apply filters
+      if (category) {
+        collectionRef = collectionRef.where('category', '==', category);
+      }
+      if (city) {
+        collectionRef = collectionRef.where('city', '==', city);
+      }
+      
+      const snapshot = await collectionRef.get();
+      let businesses = snapshot.docs.map(doc => doc.data() as Business);
+      
+      // Filter by query if provided
+      if (query) {
+        const lowerQuery = query.toLowerCase();
+        businesses = businesses.filter(business => 
+          business.name.toLowerCase().includes(lowerQuery) ||
+          business.description?.toLowerCase().includes(lowerQuery) ||
+          business.category.toLowerCase().includes(lowerQuery)
+        );
+      }
+      
+      return businesses;
+    } catch (error) {
+      console.error('Error searching businesses:', error);
+      return [];
+    }
+  }
+
+  async getBusinessesByCategory(category: string): Promise<Business[]> {
+    try {
+      const snapshot = await db.collection('businesses').where('category', '==', category).get();
+      return snapshot.docs.map(doc => doc.data() as Business);
+    } catch (error) {
+      console.error('Error getting businesses by category:', error);
+      return [];
+    }
+  }
+
+  async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
+    const businessesRef = db.collection('businesses');
+    const counterRef = db.collection('counters').doc('businesses');
+
+    const result = await db.runTransaction(async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
+      const newId = currentId + 1;
+
+      const business: Business = {
+        ...insertBusiness,
+        id: newId,
+        avgRating: 0,
+        reviewCount: 0,
+        photos: insertBusiness.photos || [],
+        hours: insertBusiness.hours || {},
+        amenities: insertBusiness.amenities || [],
+        verified: false,
+        featured: false,
+        claimedBy: null,
+        createdAt: new Date(),
+      };
+
+      transaction.set(counterRef, { count: newId });
+      transaction.set(businessesRef.doc(newId.toString()), business);
+
+      return business;
+    });
+
+    return result;
+  }
+
   // Review operations
   async getReview(id: number): Promise<Review | undefined> {
     const doc = await db.collection('reviews').doc(id.toString()).get();
