@@ -86,6 +86,7 @@ export default function AddBusiness() {
       photos: [],
       createdBy: user?.id || 0,
     },
+    mode: 'onChange', // Enable real-time validation
   });
 
   // Set createdBy when user changes
@@ -120,8 +121,21 @@ export default function AddBusiness() {
 
   const onSubmit = async (data: FormData) => {
     console.log('Form submitted with data:', data);
+    console.log('Form errors:', form.formState.errors);
+    console.log('Form valid:', form.formState.isValid);
     console.log('User:', user);
     console.log('Selected photos:', selectedPhotos);
+
+    // Check if form is valid
+    if (!form.formState.isValid) {
+      console.error('Form validation failed:', form.formState.errors);
+      toast({
+        title: t('common.error'),
+        description: 'Please fill in all required fields correctly.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     if (!user?.id) {
       console.error('No user ID found');
@@ -147,6 +161,11 @@ export default function AddBusiness() {
       // Upload photos if any
       if (selectedPhotos.length > 0) {
         console.log('Uploading photos...');
+        toast({
+          title: 'Uploading photos...',
+          description: 'Please wait while we upload your photos.',
+        });
+        
         for (const photo of selectedPhotos) {
           try {
             const photoUrl = await uploadBusinessPhoto(photo);
@@ -184,6 +203,11 @@ export default function AddBusiness() {
 
       console.log('Final business data to submit:', businessData);
 
+      toast({
+        title: 'Creating business...',
+        description: 'Please wait while we create your business listing.',
+      });
+
       // Make the API call directly instead of using mutation for better error handling
       const response = await fetch('/api/businesses', {
         method: 'POST',
@@ -209,8 +233,12 @@ export default function AddBusiness() {
         description: 'Business added successfully!',
       });
 
-      // Navigate to the new business page
-      navigate(`/business/${result.id}`);
+      // Navigate to the new business page using slug if available
+      if (result.slug) {
+        navigate(`/business/${result.slug}`);
+      } else {
+        navigate(`/business/${result.id}`);
+      }
 
     } catch (error) {
       console.error('Error submitting business:', error);
@@ -465,8 +493,17 @@ export default function AddBusiness() {
                 </Link>
                 <Button 
                   type="submit" 
-                  className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C]"
-                  disabled={uploading || isSubmitting}
+                  className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50"
+                  disabled={uploading || isSubmitting || !form.formState.isValid}
+                  onClick={() => {
+                    console.log('Submit button clicked');
+                    console.log('Form state:', { 
+                      isValid: form.formState.isValid, 
+                      errors: form.formState.errors,
+                      isSubmitting,
+                      uploading 
+                    });
+                  }}
                 >
                   {uploading ? t('common.uploading') : isSubmitting ? 'Creating Business...' : t('addBusiness.addButton')}
                 </Button>
