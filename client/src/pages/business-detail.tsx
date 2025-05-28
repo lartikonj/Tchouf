@@ -346,13 +346,12 @@ export default function BusinessDetail() {
                 <div className="space-y-3">
                   {/* Edit Business Info - Only visible to verified business owners */}
                   {isBusinessOwner && business.verified && (
-                    <Button
-                      onClick={() => navigate(`/add-business?edit=${business.id}`)}
-                      className="w-full bg-[#FF6F00] hover:bg-[#E65100]"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Business Info
-                    </Button>
+                    <Link href={`/add-business?edit=${business.id}`}>
+                      <Button className="w-full bg-[#FF6F00] hover:bg-[#E65100]">
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Business Info
+                      </Button>
+                    </Link>
                   )}
 
                   {/* Claim Business - Only visible for unverified businesses that aren't claimed */}

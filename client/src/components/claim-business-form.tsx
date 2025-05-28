@@ -38,12 +38,30 @@ export function ClaimBusinessForm({
         throw new Error('Missing required information');
       }
 
-      // Get the user's database ID by their Firebase UID
-      const userResponse = await fetch(`/api/users/uid/${user.uid}`);
+      // Get the user's database ID by their Firebase UID, create user if doesn't exist
+      let userResponse = await fetch(`/api/users/uid/${user.uid}`);
+      let userData;
+      
       if (!userResponse.ok) {
-        throw new Error('User not found in database');
+        // User doesn't exist in database, create them
+        const createUserResponse = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid: user.uid,
+            email: user.email,
+            displayName: user.displayName || null,
+            photoURL: user.photoURL || null,
+          }),
+        });
+        
+        if (!createUserResponse.ok) {
+          throw new Error('Failed to create user in database');
+        }
+        userData = await createUserResponse.json();
+      } else {
+        userData = await userResponse.json();
       }
-      const userData = await userResponse.json();
 
       const response = await fetch('/api/claims', {
         method: 'POST',
