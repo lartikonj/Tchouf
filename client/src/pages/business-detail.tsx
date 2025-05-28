@@ -144,6 +144,20 @@ export default function BusinessDetail() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
 
                 <p className="text-gray-600 text-lg mb-2">{business.category}</p>
+                
+                {/* Business Owner Info - Only show if business is verified and has an owner */}
+                {business.verified && business.owner && (
+                  <div className="flex items-center text-gray-600 mb-2">
+                    <Building className="h-5 w-5 mr-2" />
+                    <span>
+                      Owned by {business.owner.displayName 
+                        ? `${business.owner.displayName.split(' ')[0]} ${business.owner.displayName.split(' ')[1]?.[0] || ''}.`
+                        : business.owner.email.split('@')[0]
+                      }
+                    </span>
+                  </div>
+                )}
+                
                 <div className="flex items-center text-gray-600 mb-2">
                   <MapPin className="h-5 w-5 mr-2" />
                   <span>{business.address}</span>
@@ -316,8 +330,8 @@ export default function BusinessDetail() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
-                  {/* Edit Business Info - Only visible to business owner */}
-                  {isBusinessOwner && (
+                  {/* Edit Business Info - Only visible to verified business owners */}
+                  {isBusinessOwner && business.verified && (
                     <Button
                       onClick={() => navigate(`/add-business?edit=${business.id}`)}
                       className="w-full bg-[#FF6F00] hover:bg-[#E65100]"
@@ -327,8 +341,8 @@ export default function BusinessDetail() {
                     </Button>
                   )}
 
-                  {/* Claim Business - Only visible for unclaimed businesses */}
-                  {!business.claimedBy && !isBusinessOwner && (
+                  {/* Claim Business - Only visible for unverified businesses that aren't claimed */}
+                  {!business.verified && !isBusinessOwner && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"
@@ -339,10 +353,17 @@ export default function BusinessDetail() {
                     </Button>
                   )}
 
-                  {/* If no actions available, show a message */}
-                  {!isBusinessOwner && business.claimedBy && (
+                  {/* If no actions available, show appropriate message */}
+                  {!isBusinessOwner && business.verified && (
                     <p className="text-sm text-gray-500 text-center py-4">
-                      This business is already claimed and verified.
+                      This business is verified and managed by its owner.
+                    </p>
+                  )}
+                  
+                  {/* If business is claimed but not verified */}
+                  {!isBusinessOwner && !business.verified && business.claimedBy && (
+                    <p className="text-sm text-gray-500 text-center py-4">
+                      This business claim is pending verification.
                     </p>
                   )}
                 </div>
