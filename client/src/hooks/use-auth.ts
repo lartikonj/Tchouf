@@ -24,6 +24,7 @@ interface AuthUser {
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [creatingUser, setCreatingUser] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -36,8 +37,9 @@ export function useAuth() {
           if (response.ok) {
             const dbUser = await response.json();
             setUser(dbUser);
-          } else if (response.status === 404) {
+          } else if (response.status === 404 && !creatingUser) {
             // User doesn't exist in our database, create them
+            setCreatingUser(true);
             const newUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
@@ -45,9 +47,22 @@ export function useAuth() {
               photoURL: firebaseUser.photoURL,
             };
             
-            const createResponse = await apiRequest('POST', '/api/users', newUser);
-            const createdUser = await createResponse.json();
-            setUser(createdUser);
+            try {
+              const createResponse = await apiRequest('POST', '/api/users', newUser);
+              const createdUser = await createResponse.json();
+              setUser(createdUser);
+            } catch (createError) {
+              console.error('Error creating user:', createError);
+              // Fallback to Firebase user data
+              setUser({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email!,
+                displayName: firebaseUser.displayName,
+                photoURL: firebaseUser.photoURL,
+              });
+            } finally {
+              setCreatingUser(false);
+            }
           }
         } catch (error) {
           console.error('Error syncing user:', error);
@@ -61,12 +76,13 @@ export function useAuth() {
         }
       } else {
         setUser(null);
+        setCreatingUser(false);
       }
       setLoading(false);
     });
 
     return unsubscribe;
-  }, []);
+  }, [creatingUser]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -93,9 +109,13 @@ export function useAuth() {
       setLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update profile if displayName provided
-      if (displayName && result.user) {
-        await result.user.updateProfile({ displayName });
+      // Update profile if displayName provided and not using emulator
+      if (displayName && result.user && typeof result.user.updateProfile === 'function') {
+        try {
+          await result.user.updateProfile({ displayName });
+        } catch (updateError) {
+          console.log('Profile update not supported in emulator');
+        }
       }
       
       toast({

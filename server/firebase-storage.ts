@@ -258,7 +258,11 @@ export class FirebaseStorage implements IStorage {
     const counterRef = db.collection('counters').doc('reviews');
 
     const result = await db.runTransaction(async (transaction) => {
+      // Do all reads first
       const counterDoc = await transaction.get(counterRef);
+      const businessRef = db.collection('businesses').doc(insertReview.businessId.toString());
+      const businessDoc = await transaction.get(businessRef);
+
       const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
       const newId = currentId + 1;
 
@@ -269,13 +273,11 @@ export class FirebaseStorage implements IStorage {
         createdAt: new Date(),
       };
 
+      // Do all writes after reads
       transaction.set(counterRef, { count: newId });
       transaction.set(reviewsRef.doc(newId.toString()), review);
 
       // Update business average rating
-      const businessRef = db.collection('businesses').doc(insertReview.businessId.toString());
-      const businessDoc = await transaction.get(businessRef);
-
       if (businessDoc.exists) {
         const businessData = businessDoc.data()!;
         const currentReviewCount = businessData.reviewCount || 0;
