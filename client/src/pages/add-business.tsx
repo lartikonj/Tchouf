@@ -85,11 +85,20 @@ export default function AddBusiness() {
     },
   });
 
+  // Set createdBy when user changes
+  useEffect(() => {
+    if (user?.id) {
+      form.setValue('createdBy', user.id);
+    }
+  }, [user?.id, form]);
+
   const createBusinessMutation = useMutation({
     mutationFn: async (businessData: any) => {
+      console.log('Creating business with data:', businessData);
       return apiRequest('POST', '/api/businesses', businessData);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('Business created successfully:', result);
       toast({
         title: t('common.success'),
         description: 'Business added successfully!',
@@ -97,9 +106,10 @@ export default function AddBusiness() {
       navigate('/');
     },
     onError: (error: any) => {
+      console.error('Error creating business:', error);
       toast({
         title: t('common.error'),
-        description: error.message,
+        description: error.message || 'Failed to create business',
         variant: 'destructive',
       });
     },
@@ -125,15 +135,30 @@ export default function AddBusiness() {
         }
       }
 
+      // Generate slug from business name
+      const slug = data.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single
+        .trim();
+
       const businessData = {
         ...data,
+        slug,
         createdBy: user.id!,
         photos: uploadedPhotoUrls,
       };
 
+      console.log('Submitting business data:', businessData);
       createBusinessMutation.mutate(businessData);
     } catch (error) {
-      // Error handled by uploadBusinessPhoto
+      console.error('Error submitting business:', error);
+      toast({
+        title: t('common.error'),
+        description: 'Failed to create business. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 

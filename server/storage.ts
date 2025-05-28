@@ -15,6 +15,7 @@ export interface IStorage {
 
   // Business operations
   getBusiness(id: number): Promise<Business | undefined>;
+  getBusinessBySlug(slug: string): Promise<Business | undefined>;
   getBusinessWithReviews(id: number): Promise<BusinessWithReviews | undefined>;
   getBusinesses(limit?: number, offset?: number): Promise<Business[]>;
   searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]>;
@@ -90,6 +91,10 @@ export class MemStorage implements IStorage {
     return this.businesses.get(id);
   }
 
+  async getBusinessBySlug(slug: string): Promise<Business | undefined> {
+    return Array.from(this.businesses.values()).find(business => business.slug === slug);
+  }
+
   async getBusinessWithReviews(id: number): Promise<BusinessWithReviews | undefined> {
     const business = this.businesses.get(id);
     if (!business) return undefined;
@@ -132,9 +137,22 @@ export class MemStorage implements IStorage {
 
   async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
     const id = this.currentBusinessId++;
+    
+    // Generate slug if not provided
+    let slug = insertBusiness.slug;
+    if (!slug && insertBusiness.name) {
+      slug = insertBusiness.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim();
+    }
+
     const business: Business = {
       ...insertBusiness,
       id,
+      slug: slug || `business-${id}`,
       avgRating: 0,
       reviewCount: 0,
       verified: false,
