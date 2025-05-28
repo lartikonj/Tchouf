@@ -411,12 +411,13 @@ export class FirebaseStorage implements IStorage {
     }
   }
 
-  async updateUserProfile(userId: number, updates: { firstName?: string; lastName?: string; displayName?: string }): Promise<User | null> {
-    try {
-      const userRef = db.collection('users').doc(userId.toString());
-      const userDoc = await userRef.get();
+  async updateUserProfile(userId: number, updates: Partial<User>): Promise<User | null> {
+    const userRef = db.collection('users').doc(userId.toString());
 
-      if (!userDoc.exists) return null;
+    if (!userRef) return null;
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) return null;
 
       // Generate displayName if firstName and lastName are provided
       let displayName = updates.displayName;
@@ -429,14 +430,40 @@ export class FirebaseStorage implements IStorage {
         displayName: displayName || updates.displayName
       };
 
-      await userRef.update(updateData);
+    await userRef.update(updateData);
 
-      const updatedDoc = await userRef.get();
-      return { id: userId, ...updatedDoc.data() } as User;
-    } catch (error) {
-      console.error('Error updating user profile:', error);
+    const updatedDoc = await userRef.get();
+    return { id: userId, ...updatedDoc.data() } as User;
+  }
+
+  async updateUserProfileByUid(uid: string, updates: Partial<User>): Promise<User | null> {
+    // First find the user by UID
+    const snapshot = await db.collection('users').where('uid', '==', uid).get();
+
+    if (snapshot.empty) {
       return null;
     }
+
+    const userDoc = snapshot.docs[0].ref;
+    //const userId = parseInt(userDoc.id);
+
+    // Filter out undefined values to prevent Firestore errors
+    const cleanUpdates = Object.fromEntries(
+      Object.entries(updates).filter(([_, value]) => value !== undefined && value !== null)
+    );
+
+    // Update the document
+    await userDoc.update(cleanUpdates);
+
+    // Return the updated user data
+    const updatedUserDoc = await db.collection('users').where('uid', '==', uid).get();
+    const updatedDoc = updatedUserDoc.docs[0];
+    if (updatedDoc.exists) {
+        const data = updatedDoc.data()!;
+        return { id: data.id, ...data } as User;
+    }
+
+    return null;
   }
 
   async updateUserAdmin(userId: number, isAdmin: boolean): Promise<User | null> {

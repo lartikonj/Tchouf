@@ -28,6 +28,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile by UID
+  app.patch("/api/users/uid/:uid/profile", async (req, res) => {
+    try {
+      const { uid } = req.params;
+      const updateData = req.body;
+
+      const updatedUser = await storage.updateUserProfileByUid(uid, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      res.status(500).json({ error: 'Failed to update user profile' });
+    }
+  });
+
   app.post("/api/users", async (req, res, next) => {
     try {
       const userData = insertUserSchema.parse(req.body);

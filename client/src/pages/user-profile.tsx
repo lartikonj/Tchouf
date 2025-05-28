@@ -87,6 +87,15 @@ export default function UserProfile() {
   const [editClaimOpen, setEditClaimOpen] = useState(false);
   const [newProofFile, setNewProofFile] = useState<File | null>(null);
 
+  // State variables for editing profile information
+  const [editingFirstName, setEditingFirstName] = useState(false);
+  const [editingLastName, setEditingLastName] = useState(false);
+  const [editingDisplayName, setEditingDisplayName] = useState(false);
+
+  const [tempFirstName, setTempFirstName] = useState('');
+  const [tempLastName, setTempLastName] = useState('');
+  const [tempDisplayName, setTempDisplayName] = useState('');
+
   // Fetch user's businesses
   const { data: userBusinesses, isLoading: businessesLoading } = useQuery({
     queryKey: [`/api/users/${user?.id}/businesses`],
@@ -251,61 +260,88 @@ export default function UserProfile() {
     },
   });
 
-  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      uploadPhotoMutation.mutate(file);
-    }
-  };
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (profileData: { firstName?: string; lastName?: string; displayName?: string }) => {
+      // Filter out undefined values
+      const cleanData = Object.fromEntries(
+        Object.entries(profileData).filter(([_, value]) => value !== undefined && value !== null)
+      );
 
-  const handleEditReview = (review: ReviewWithBusiness) => {
-    setSelectedReview(review);
-    setEditReviewOpen(true);
-  };
+      const response = await fetch(`/api/users/uid/${user?.uid}/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanData),
+      });
 
-  const handleDeleteReview = (reviewId: number) => {
-    deleteReviewMutation.mutate(reviewId);
-  };
-
-  const handleDeleteClaim = (claim: ClaimWithBusiness) => {
-    setSelectedClaim(claim);
-    setClaimDeleteDialogOpen(true);
-  };
-
-  const handleEditClaim = (claim: ClaimWithBusiness) => {
-    setSelectedClaim(claim);
-    setEditClaimOpen(true);
-  };
-
-  const confirmDeleteClaim = () => {
-    if (selectedClaim) {
-      deleteClaimMutation.mutate(selectedClaim.id);
-    }
-  };
-
-  const handleUpdateClaim = async () => {
-    if (!selectedClaim || !newProofFile) {
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/uid/${user?.uid}`] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      // Reset editing states
+      setEditingFirstName(false);
+      setEditingLastName(false);
+      setEditingDisplayName(false);
+    },
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Please select a new proof document",
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
-      return;
-    }
+    },
+  });
 
-    try {
-      const proofUrl = await uploadFile(newProofFile, 'claim-proofs');
-      editClaimMutation.mutate({ 
-        claimId: selectedClaim.id, 
-        proofUrl 
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload proof document",
-        variant: "destructive",
-      });
-    }
+  const handleEditFirstName = () => {
+    setTempFirstName(user?.firstName || '');
+    setEditingFirstName(true);
+  };
+
+  const handleSaveFirstName = () => {
+    updateProfileMutation.mutate({ firstName: tempFirstName });
+  };
+
+  const handleCancelFirstName = () => {
+    setEditingFirstName(false);
+    setTempFirstName('');
+  };
+
+  const handleEditLastName = () => {
+    setTempLastName(user?.lastName || '');
+    setEditingLastName(true);
+  };
+
+  const handleSaveLastName = () => {
+    updateProfileMutation.mutate({ lastName: tempLastName });
+  };
+
+  const handleCancelLastName = () => {
+    setEditingLastName(false);
+    setTempLastName('');
+  };
+
+  const handleEditDisplayName = () => {
+    setTempDisplayName(user?.displayName || '');
+    setEditingDisplayName(true);
+  };
+
+  const handleSaveDisplayName = () => {
+    updateProfileMutation.mutate({ displayName: tempDisplayName });
+  };
+
+  const handleCancelDisplayName = () => {
+    setEditingDisplayName(false);
+    setTempDisplayName('');
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -706,83 +742,84 @@ export default function UserProfile() {
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <Label>First Name</Label>
-                        <Input 
-                          value={user.firstName || ''} 
-                          onChange={async (e) => {
-                            const newFirstName = e.target.value;
-                            try {
-                              const response = await fetch(`/api/users/${user.id}/profile`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                  firstName: newFirstName,
-                                  lastName: user.lastName
-                                }),
-                              });
-
-                              if (response.ok) {
-                                // Refresh auth state to get updated user data
-                                window.location.reload();
-                              } else {
-                                throw new Error('Failed to update profile');
-                              }
-                            } catch (error) {
-                              toast({
-                                title: "Error",
-                                description: "Failed to update first name",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                        />
+                        {editingFirstName ? (
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              value={tempFirstName}
+                              onChange={(e) => setTempFirstName(e.target.value)}
+                            />
+                            <Button size="sm" onClick={handleSaveFirstName}>
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={handleCancelFirstName}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Input value={user.firstName || ''} readOnly />
+                            <Button size="sm" onClick={handleEditFirstName}>
+                              Edit
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <Label>Last Name</Label>
-                        <Input 
-                          value={user.lastName || ''} 
-                          onChange={async (e) => {
-                            const newLastName = e.target.value;
-                            try {
-                              const response = await fetch(`/api/users/${user.id}/profile`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                  firstName: user.firstName,
-                                  lastName: newLastName
-                                }),
-                              });
-
-                              if (response.ok) {
-                                // Refresh auth state to get updated user data
-                                window.location.reload();
-                              } else {
-                                throw new Error('Failed to update profile');
-                              }
-                            } catch (error) {
-                              toast({
-                                title: "Error",
-                                description: "Failed to update last name",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                        />
+                        {editingLastName ? (
+                          <div className="flex items-center space-x-2">
+                            <Input
+                              value={tempLastName}
+                              onChange={(e) => setTempLastName(e.target.value)}
+                            />
+                            <Button size="sm" onClick={handleSaveLastName}>
+                              Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={handleCancelLastName}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Input value={user.lastName || ''} readOnly />
+                            <Button size="sm" onClick={handleEditLastName}>
+                              Edit
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div>
                       <Label>Display Name</Label>
-                      <Input 
-                        value={user.firstName && user.lastName 
-                          ? `${user.firstName} ${user.lastName.charAt(0)}.`
-                          : user.displayName || ''
-                        } 
-                        placeholder="Auto-generated from first and last name"
-                        readOnly
-                      />
+                      {editingDisplayName ? (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            value={tempDisplayName}
+                            onChange={(e) => setTempDisplayName(e.target.value)}
+                          />
+                          <Button size="sm" onClick={handleSaveDisplayName}>
+                            Save
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={handleCancelDisplayName}>
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            value={
+                              user.firstName && user.lastName
+                                ? `${user.firstName} ${user.lastName.charAt(0)}.`
+                                : user.displayName || ''
+                            }
+                            placeholder="Auto-generated from first and last name"
+                            readOnly
+                          />
+                          <Button size="sm" onClick={handleEditDisplayName}>
+                            Edit
+                          </Button>
+                        </div>
+                      )}
                       <p className="text-sm text-gray-500 mt-1">
                         Display name is automatically generated from your first and last name
                       </p>
@@ -874,7 +911,7 @@ export default function UserProfile() {
             <DialogDescription>
               Update the proof document for "{selectedClaim?.business.name}"
             </DialogDescription>
-          </DialogHeader>
+          </Dialog          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="current-proof">Current Proof Document</Label>
