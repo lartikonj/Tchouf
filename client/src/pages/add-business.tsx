@@ -521,28 +521,13 @@ export default function AddBusiness() {
                   disabled={
                     uploading || 
                     isSubmitting || 
-                    !form.watch('name') || 
+                    !form.watch('name')?.trim() || 
                     !form.watch('category') || 
                     !form.watch('city') || 
-                    !form.watch('address')
+                    !form.watch('address')?.trim()
                   }
-                  onClick={() => {
-                    console.log('Submit button clicked');
-                    console.log('Form state:', { 
-                      isValid: form.formState.isValid, 
-                      errors: form.formState.errors,
-                      isSubmitting,
-                      uploading,
-                      formValues: {
-                        name: form.watch('name'),
-                        category: form.watch('category'),
-                        city: form.watch('city'),
-                        address: form.watch('address')
-                      }
-                    });
-                  }}
                 >
-                  {uploading ? t('common.uploading') : isSubmitting ? 'Creating Business...' : t('addBusiness.addButton')}
+                  {uploading ? t('common.uploading') : isSubmitting ? (isEditMode ? 'Updating Business...' : 'Creating Business...') : (isEditMode ? 'Update Business' : t('addBusiness.addButton'))}
                 </Button>
               </div>
             </form>
