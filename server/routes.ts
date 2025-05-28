@@ -41,9 +41,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Update user admin status in Firebase
-      const db = require('firebase-admin/firestore').getFirestore();
-      await db.collection('users').doc(id.toString()).update({ isAdmin });
+      // Update user admin status through storage layer
+      await storage.updateUserAdmin(id, isAdmin);
       
       const updatedUser = await storage.getUser(id);
       res.json(updatedUser);
@@ -365,10 +364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Update user to be admin in Firebase
-      const { getFirestore } = require('firebase-admin/firestore');
-      const db = getFirestore();
-      await db.collection('users').doc(user.id.toString()).update({ isAdmin: true });
+      // Update user to be admin through storage layer
+      await storage.updateUserAdmin(user.id, true);
       
       const updatedUser = await storage.getUser(user.id);
       res.json(updatedUser);

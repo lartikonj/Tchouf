@@ -353,14 +353,37 @@ export class FirebaseStorage implements IStorage {
   }
 
   async updateUserPhoto(userId: number, photoURL: string): Promise<User | null> {
-    const userRef = db.collection('users').doc(userId.toString());
+    try {
+      const userRef = db.collection('users').doc(userId.toString());
+      const userDoc = await userRef.get();
 
-    await userRef.update({ photoURL });
+      if (!userDoc.exists) return null;
 
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) return null;
+      await userRef.update({ photoURL });
 
-    return { id: userId, ...userDoc.data() } as User;
+      const updatedDoc = await userRef.get();
+      return { id: userId, ...updatedDoc.data() } as User;
+    } catch (error) {
+      console.error('Error updating user photo:', error);
+      return null;
+    }
+  }
+
+  async updateUserAdmin(userId: number, isAdmin: boolean): Promise<User | null> {
+    try {
+      const userRef = db.collection('users').doc(userId.toString());
+      const userDoc = await userRef.get();
+
+      if (!userDoc.exists) return null;
+
+      await userRef.update({ isAdmin });
+
+      const updatedDoc = await userRef.get();
+      return { id: userId, ...updatedDoc.data() } as User;
+    } catch (error) {
+      console.error('Error updating user admin status:', error);
+      return null;
+    }
   }
 
   async deleteUser(userId: number): Promise<boolean> {
