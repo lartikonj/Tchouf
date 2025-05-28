@@ -352,8 +352,8 @@ export default function BusinessDetail() {
                     </Link>
                   )}
 
-                  {/* Claim Business - Only visible for unverified businesses that aren't claimed */}
-                  {!business.verified && !isBusinessOwner && (
+                  {/* Claim Business - Only visible for unverified businesses that aren't owned by current user */}
+                  {!business.verified && !isBusinessOwner && !business.claimedBy && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"
@@ -375,6 +375,13 @@ export default function BusinessDetail() {
                   {!isBusinessOwner && !business.verified && business.claimedBy && (
                     <p className="text-sm text-gray-500 text-center py-4">
                       This business claim is pending verification.
+                    </p>
+                  )}
+
+                  {/* If user has no businesses to manage and this one is unverified and unclaimed */}
+                  {!isBusinessOwner && !business.verified && !business.claimedBy && (
+                    <p className="text-sm text-gray-500 text-center py-2">
+                      You can claim this business if you are the owner.
                     </p>
                   )}
                 </div>
