@@ -157,11 +157,28 @@ export default function BusinessDetail() {
 
                 <p className="text-gray-600 text-lg mb-2">{business.category}</p>
 
+                {/* Business Status Badge */}
+                <div className="flex items-center space-x-2 mb-2">
+                  {business.verified ? (
+                    <Badge className="bg-green-100 text-green-800 border-green-300">
+                      ✓ Verified Business
+                    </Badge>
+                  ) : business.claimedBy ? (
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      Claim Pending Verification
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                      Unverified Business
+                    </Badge>
+                  )}
+                </div>
+
                 {/* Business Owner Info - Only show if business is verified and has an owner */}
                 {business.verified && business.owner && (
                   <div className="flex items-center text-gray-600 mb-2">
                     <Building className="h-5 w-5 mr-2" />
-                    <span>
+                    <span className="font-medium">
                       Owned by {business.owner.displayName 
                         ? `${business.owner.displayName.split(' ')[0]} ${business.owner.displayName.split(' ')[1]?.[0] || ''}.`
                         : business.owner.email.split('@')[0]
@@ -352,37 +369,49 @@ export default function BusinessDetail() {
                     </Link>
                   )}
 
-                  {/* Claim Business - Only visible for unverified businesses that aren't owned by current user */}
-                  {!business.verified && !isBusinessOwner && !business.claimedBy && (
+                  {/* Claim Business - Only show if business is unclaimed and user is logged in */}
+                  {user && !business.claimedBy && !business.verified && !isBusinessOwner && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"
                       className="w-full border-[#D32F2F] text-[#D32F2F] hover:bg-red-50"
                     >
                       <Building className="h-4 w-4 mr-2" />
-                      {t('business.claimBusiness')}
+                      Claim This Business
                     </Button>
                   )}
 
-                  {/* If no actions available, show appropriate message */}
-                  {!isBusinessOwner && business.verified && (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      This business is verified and managed by its owner.
-                    </p>
+                  {/* Status messages */}
+                  {business.verified && !isBusinessOwner && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-700 text-center">
+                        ✓ This business is verified and managed by its owner.
+                      </p>
+                    </div>
                   )}
 
-                  {/* If business is claimed but not verified */}
-                  {!isBusinessOwner && !business.verified && business.claimedBy && (
-                    <p className="text-sm text-gray-500 text-center py-4">
-                      This business claim is pending verification.
-                    </p>
+                  {business.claimedBy && !business.verified && !isBusinessOwner && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-700 text-center">
+                        ⏳ This business has been claimed and is pending verification.
+                      </p>
+                    </div>
                   )}
 
-                  {/* If user has no businesses to manage and this one is unverified and unclaimed */}
-                  {!isBusinessOwner && !business.verified && !business.claimedBy && (
-                    <p className="text-sm text-gray-500 text-center py-2">
-                      You can claim this business if you are the owner.
-                    </p>
+                  {!user && !business.verified && !business.claimedBy && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-700 text-center">
+                        Please sign in to claim this business if you are the owner.
+                      </p>
+                    </div>
+                  )}
+
+                  {user && !business.claimedBy && !business.verified && !isBusinessOwner && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <p className="text-xs text-gray-600 text-center">
+                        Are you the owner? Click "Claim This Business" to verify your ownership.
+                      </p>
+                    </div>
                   )}
                 </div>
               </CardContent>

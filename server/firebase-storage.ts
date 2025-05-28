@@ -73,12 +73,32 @@ export class FirebaseStorage implements IStorage {
     const doc = await db.collection('businesses').doc(id.toString()).get();
     if (!doc.exists) return undefined;
     const data = doc.data()!;
-    return {
+    
+    let business = {
       ...data,
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
       avgRating: data.avgRating || 0,
       reviewCount: data.reviewCount || 0
     } as Business;
+
+    // If business is verified and has a claimedBy user, fetch owner info
+    if (business.verified && business.claimedBy) {
+      const ownerDoc = await db.collection('users').doc(business.claimedBy.toString()).get();
+      if (ownerDoc.exists) {
+        const ownerData = ownerDoc.data()!;
+        business = {
+          ...business,
+          owner: {
+            id: business.claimedBy,
+            email: ownerData.email,
+            displayName: ownerData.displayName || null,
+            photoURL: ownerData.photoURL || null
+          }
+        };
+      }
+    }
+
+    return business;
   }
 
   async getBusinessWithReviews(id: number): Promise<BusinessWithReviews | undefined> {

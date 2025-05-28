@@ -96,6 +96,12 @@ export type BusinessWithReviews = Business & {
   reviews: Review[];
   claimedByUser?: User;
   createdByUser: User;
+  owner?: {
+    id: number;
+    email: string;
+    displayName: string | null;
+    photoURL: string | null;
+  };
 };
 
 export type ReviewWithUser = Review & {
