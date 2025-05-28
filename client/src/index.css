@@ -249,6 +249,33 @@
     * {
       -webkit-overflow-scrolling: touch;
     }
+    
+    /* Mobile dialog improvements */
+    [role="dialog"] {
+      max-width: 95vw;
+      max-height: 90vh;
+    }
+    
+    /* Grid improvements for mobile */
+    .grid {
+      gap: 1rem;
+    }
+    
+    /* Tab improvements */
+    [role="tablist"] {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Form improvements */
+    input[type="text"], 
+    input[type="email"], 
+    input[type="tel"], 
+    input[type="number"],
+    textarea,
+    select {
+      font-size: 16px; /* Prevent zoom on iOS */
+    }
   }
   
   /* Improve focus for accessibility */
@@ -256,6 +283,19 @@
     *:focus {
       outline: 2px solid hsl(var(--ring));
       outline-offset: 2px;
+    }
+  }
+
+  /* Better mobile navigation */
+  @media (max-width: 768px) {
+    .mobile-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid hsl(var(--border));
+      z-index: 50;
     }
   }
 }

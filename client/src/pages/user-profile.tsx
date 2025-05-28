@@ -298,12 +298,12 @@ export default function UserProfile() {
 
         {/* Profile Header */}
         <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-6">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
               <div className="relative">
-                <Avatar className="w-24 h-24">
+                <Avatar className="w-20 h-20 sm:w-24 sm:h-24">
                   <AvatarImage src={user.photoURL || ''} />
-                  <AvatarFallback className="bg-[#D32F2F] text-white text-2xl font-semibold">
+                  <AvatarFallback className="bg-[#D32F2F] text-white text-xl sm:text-2xl font-semibold">
                     {user.displayName 
                       ? user.displayName.split(' ').map(n => n[0]).join('').slice(0, 2)
                       : user.email[0].toUpperCase()
@@ -319,7 +319,7 @@ export default function UserProfile() {
                       <Camera className="h-4 w-4" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="w-[90vw] max-w-md">
                     <DialogHeader>
                       <DialogTitle>Update Profile Photo</DialogTitle>
                       <DialogDescription>
@@ -338,16 +338,16 @@ export default function UserProfile() {
                 </Dialog>
               </div>
               
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900">
+              <div className="flex-1 text-center sm:text-left">
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                   {user.displayName || user.email.split('@')[0]}
                 </h1>
-                <p className="text-gray-600">{user.email}</p>
-                <div className="flex items-center space-x-4 mt-2">
+                <p className="text-gray-600 text-sm sm:text-base">{user.email}</p>
+                <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 mt-2">
                   {user.isAdmin && (
                     <Badge className="bg-[#D32F2F]">Admin</Badge>
                   )}
-                  <span className="text-sm text-gray-500">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     <Calendar className="h-4 w-4 inline mr-1" />
                     Joined {new Date(user.createdAt).toLocaleDateString()}
                   </span>
@@ -359,21 +359,21 @@ export default function UserProfile() {
 
         {/* Tabs */}
         <Tabs defaultValue="businesses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="businesses">
-              <Building className="h-4 w-4 mr-2" />
-              My Businesses
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+            <TabsTrigger value="businesses" className="text-xs sm:text-sm">
+              <Building className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">My </span>Businesses
             </TabsTrigger>
-            <TabsTrigger value="reviews">
-              <Star className="h-4 w-4 mr-2" />
-              My Reviews
+            <TabsTrigger value="reviews" className="text-xs sm:text-sm">
+              <Star className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">My </span>Reviews
             </TabsTrigger>
-            <TabsTrigger value="claims">
-              <User className="h-4 w-4 mr-2" />
-              My Claims
+            <TabsTrigger value="claims" className="text-xs sm:text-sm">
+              <User className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">My </span>Claims
             </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="h-4 w-4 mr-2" />
+            <TabsTrigger value="settings" className="text-xs sm:text-sm">
+              <Settings className="h-4 w-4 mr-1 sm:mr-2" />
               Settings
             </TabsTrigger>
           </TabsList>

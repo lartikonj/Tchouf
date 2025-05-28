@@ -144,21 +144,31 @@ export default function SearchResults() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <Card className="sticky top-4">
-              <CardContent className="p-6">
-                <div className="flex items-center mb-4">
-                  <Filter className="h-5 w-5 mr-2 text-gray-600" />
-                  <h3 className="font-semibold text-gray-900">Filters</h3>
+            <Card className="lg:sticky lg:top-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <Filter className="h-5 w-5 mr-2 text-gray-600" />
+                    <h3 className="font-semibold text-gray-900">Filters</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="lg:hidden"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    {showFilters ? 'Hide' : 'Show'}
+                  </Button>
                 </div>
 
-                <div className="space-y-4">
+                <div className={`space-y-4 ${!showFilters ? 'hidden lg:block' : ''}`}>
                   {/* Category Filter */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Category
                     </label>
                     <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-12 lg:h-10">
                         <SelectValue placeholder="All Categories" />
                       </SelectTrigger>
                       <SelectContent>
@@ -183,7 +193,7 @@ export default function SearchResults() {
                         value={cityFilter}
                         onChange={(e) => setCityFilter(e.target.value)}
                         placeholder="Enter city"
-                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D32F2F] focus:border-transparent"
+                        className="w-full h-12 lg:h-10 pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#D32F2F] focus:border-transparent text-base"
                       />
                     </div>
                   </div>
@@ -197,7 +207,7 @@ export default function SearchResults() {
                         setCategoryFilter('all');
                         setCityFilter('');
                       }}
-                      className="w-full"
+                      className="w-full h-12 lg:h-10"
                     >
                       Clear Filters
                     </Button>

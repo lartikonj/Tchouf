@@ -97,12 +97,12 @@ export default function BusinessDetail() {
             {/* Business Header */}
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
                     <p className="text-lg text-gray-600">{business.category}</p>
                   </div>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 mt-2 sm:mt-0">
                     {business.verified && (
                       <Badge className="bg-[#388E3C] text-white">
                         {t('business.verified')}
