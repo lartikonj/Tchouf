@@ -285,7 +285,6 @@ export class FirebaseStorage implements IStorage {
 
     const snapshot = await reviewsRef
       .where('userId', '==', userId)
-      .orderBy('createdAt', 'desc')
       .get();
 
     const reviewsWithBusiness = [];
@@ -297,6 +296,7 @@ export class FirebaseStorage implements IStorage {
         const business = { id: review.businessId, ...businessDoc.data() };
         reviewsWithBusiness.push({ 
           ...review, 
+          createdAt: review.createdAt?.toDate ? review.createdAt.toDate() : new Date(review.createdAt),
           business: {
             id: business.id,
             name: business.name,
@@ -306,7 +306,8 @@ export class FirebaseStorage implements IStorage {
       }
     }
 
-    return reviewsWithBusiness;
+    // Sort by createdAt in memory
+    return reviewsWithBusiness.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async getUserReviewForBusiness(userId: number, businessId: number): Promise<Review | null> {
@@ -414,6 +415,43 @@ export class FirebaseStorage implements IStorage {
       avgRating: Math.round(avgRating * 10) / 10,
       reviewCount: reviews.length
     });
+  }
+
+  async getBusinessesForUser(userId: number): Promise<Business[]> {
+    try {
+      // Get businesses created by user
+      const createdSnapshot = await db.collection('businesses')
+        .where('createdBy', '==', userId)
+        .get();
+
+      // Get businesses claimed by user
+      const claimedSnapshot = await db.collection('businesses')
+        .where('claimedBy', '==', userId)
+        .get();
+
+      const createdBusinesses = createdSnapshot.docs.map(doc => ({
+        id: parseInt(doc.id),
+        ...doc.data()
+      } as Business));
+
+      const claimedBusinesses = claimedSnapshot.docs.map(doc => ({
+        id: parseInt(doc.id),
+        ...doc.data()
+      } as Business));
+
+      // Combine and remove duplicates
+      const allBusinesses = [...createdBusinesses];
+      claimedBusinesses.forEach(business => {
+        if (!allBusinesses.find(b => b.id === business.id)) {
+          allBusinesses.push(business);
+        }
+      });
+
+      return allBusinesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      console.error('Error getting businesses for user:', error);
+      return [];
+    }
   }
 
   // Claim operations

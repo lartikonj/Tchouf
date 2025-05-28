@@ -37,13 +37,14 @@ export default function BusinessDetail() {
   });
 
   const renderStars = (rating: number) => {
+    const safeRating = rating || 0;
     return Array.from({ length: 5 }, (_, i) => (
       <Star
         key={i}
         className={`h-5 w-5 ${
-          i < Math.floor(rating) 
+          i < Math.floor(safeRating) 
             ? 'fill-[#FF6F00] text-[#FF6F00]' 
-            : i < rating 
+            : i < safeRating 
               ? 'fill-[#FF6F00]/50 text-[#FF6F00]' 
               : 'text-gray-300'
         }`}
@@ -116,7 +117,7 @@ export default function BusinessDetail() {
                 </div>
 
                 {/* Rating */}
-                
+
                 <div className="flex items-center space-x-2 mb-4">
                   <div className="flex text-[#FF6F00]">
                     {renderStars(business?.avgRating || 0)}

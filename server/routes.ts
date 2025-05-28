@@ -197,6 +197,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/users/:id/businesses", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const businesses = await storage.getBusinessesForUser(userId);
+      res.json(businesses);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/users/:userId/reviews/business/:businessId", async (req, res, next) => {
     try {
       const userId = parseInt(req.params.userId);

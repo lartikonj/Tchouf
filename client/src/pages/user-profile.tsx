@@ -70,7 +70,7 @@ export default function UserProfile() {
 
   // Fetch user's businesses
   const { data: userBusinesses, isLoading: businessesLoading } = useQuery({
-    queryKey: [`/api/businesses?createdBy=${user?.id}`],
+    queryKey: [`/api/users/${user?.id}/businesses`],
     enabled: !!user?.id,
   });
 

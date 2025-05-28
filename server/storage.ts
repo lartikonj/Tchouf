@@ -22,6 +22,7 @@ export interface IStorage {
   updateBusiness(id: number, updates: Partial<Business>): Promise<Business | undefined>;
   getBusinessesByCategory(category: string): Promise<Business[]>;
   getFeaturedBusinesses(limit?: number): Promise<Business[]>;
+  getBusinessesForUser(userId: number): Promise<Business[]>;
 
   // Review operations
   getReview(id: number): Promise<Review | undefined>;
@@ -162,6 +163,12 @@ export class MemStorage implements IStorage {
     return allBusinesses
       .sort((a, b) => b.avgRating - a.avgRating || b.reviewCount - a.reviewCount)
       .slice(0, limit);
+  }
+
+  async getBusinessesForUser(userId: number): Promise<Business[]> {
+    return Array.from(this.businesses.values())
+      .filter(business => business.createdBy === userId || business.claimedBy === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   // Review operations
