@@ -14,10 +14,10 @@ import {
   Phone, 
   Globe, 
   Mail,
-  ArrowLeft,
   Star,
   Building,
-  Edit
+  Edit,
+  Clock
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 
