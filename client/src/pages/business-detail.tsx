@@ -87,6 +87,7 @@ export default function BusinessDetail() {
   // Get user's claims - moved to top level
   const { data: userClaims } = useQuery({
     queryKey: [`/api/users/${currentUser?.id}/claims`],
+    queryFn: () => fetch(`/api/users/${currentUser?.id}/claims`).then(res => res.json()),
     enabled: !!currentUser?.id,
   });
 
@@ -185,8 +186,21 @@ export default function BusinessDetail() {
       claim.userId === currentUser.id
     ) ||
     // Check if user is the verified owner
-    (business.verified && business.owner && business.owner.id === currentUser.id)
+    (business.verified && business.owner && business.owner.id === currentUser.id) ||
+    // Check if user is directly marked as claimedBy
+    (business.claimedBy === currentUser.id)
   );
+
+  // Debug logging - remove after testing
+  console.log('Business owner check:', {
+    currentUserId: currentUser?.id,
+    businessCreatedBy: business?.createdBy,
+    businessClaimedBy: business?.claimedBy,
+    businessVerified: business?.verified,
+    businessOwner: business?.owner,
+    userClaims: userClaims,
+    isBusinessOwner
+  });
 
   // Helper function to mask owner name
   const maskOwnerName = (displayName: string | null, email: string) => {
@@ -266,13 +280,13 @@ export default function BusinessDetail() {
                   </div>
                 )}
 
-                {business.hours && (
+                {(business.hours || business.openingHours) && (
                   <div className="mb-4">
                     <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
                       <Clock className="h-4 w-4 mr-2" />
                       Opening Hours
                     </h4>
-                    <p className="text-gray-600">{business.hours}</p>
+                    <p className="text-gray-600">{business.hours || business.openingHours}</p>
                   </div>
                 )}
 
@@ -463,8 +477,8 @@ export default function BusinessDetail() {
                     </Link>
                   )}
 
-                  {/* Claim Business - Only show if business is not verified or not claimed and user is logged in */}
-                  {user && (!business.verified || !business.claimedBy) && !isBusinessOwner && (
+                  {/* Claim Business - Only show if business is not verified/claimed and user is logged in */}
+                  {user && !isBusinessOwner && (!business.verified && !business.claimedBy) && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"

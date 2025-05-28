@@ -43,17 +43,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { isAdmin } = z.object({ isAdmin: z.boolean() }).parse(req.body);
-      
+
       // For now, we'll add a simple implementation
       // In production, you'd want proper authentication middleware
       const user = await storage.getUser(id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Update user admin status through storage layer
       await storage.updateUserAdmin(id, isAdmin);
-      
+
       const updatedUser = await storage.getUser(id);
       res.json(updatedUser);
     } catch (error) {
@@ -107,16 +107,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/businesses/:id", async (req, res, next) => {
+  app.get('/api/businesses/:id', async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const business = await storage.getBusiness(id);
+      const businessId = parseInt(req.params.id);
+      const business = await storage.getBusiness(businessId);
+
       if (!business) {
-        return res.status(404).json({ message: "Business not found" });
+        return res.status(404).json({ error: 'Business not found' });
       }
-      res.json(business);
+
+      // Ensure we have the complete business data structure
+      const completeBusinessData = {
+        ...business,
+        // Ensure hours field is available (might be stored as openingHours)
+        hours: business.hours || business.openingHours || null,
+        // Ensure owner information is properly structured
+        owner: business.owner || null,
+        // Ensure verification status is clear
+        verified: business.verified || false,
+        claimedBy: business.claimedBy || null
+      };
+
+      res.json(completeBusinessData);
     } catch (error) {
-      next(error);
+      console.error('Error fetching business:', error);
+      res.status(500).json({ error: 'Failed to fetch business' });
     }
   });
 
@@ -267,13 +282,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/users/:id/claims", async (req, res, next) => {
+  // Get user's claims
+  app.get('/api/users/:userId/claims', async (req, res) => {
     try {
-      const userId = parseInt(req.params.id);
+      const userId = parseInt(req.params.userId);
+      console.log('Fetching claims for user:', userId);
       const claims = await storage.getClaimsForUser(userId);
+      console.log('Found claims:', claims);
       res.json(claims);
     } catch (error) {
-      next(error);
+      console.error('Error fetching user claims:', error);
+      res.status(500).json({ error: 'Failed to fetch claims' });
     }
   });
 
@@ -336,12 +355,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { photoURL } = z.object({ photoURL: z.string() }).parse(req.body);
-      
+
       const user = await storage.updateUserPhoto(id, photoURL);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       res.json(user);
     } catch (error) {
       next(error);
@@ -392,15 +411,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/setup/admin", async (req, res, next) => {
     try {
       const { uid } = z.object({ uid: z.string() }).parse(req.body);
-      
+
       const user = await storage.getUserByUid(uid);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Update user to be admin through storage layer
       await storage.updateUserAdmin(user.id, true);
-      
+
       const updatedUser = await storage.getUser(user.id);
       res.json(updatedUser);
     } catch (error) {
