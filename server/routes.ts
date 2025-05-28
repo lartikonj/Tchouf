@@ -6,6 +6,16 @@ import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
+  app.get("/api/user", async (req, res, next) => {
+    try {
+      // This would normally use authentication middleware
+      // For now, return empty response
+      res.json(null);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/users", async (req, res, next) => {
     try {
       const userData = insertUserSchema.parse(req.body);
@@ -100,7 +110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/businesses/:id", async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);
-      const business = await storage.getBusinessWithReviews(id);
+      const business = await storage.getBusiness(id);
       if (!business) {
         return res.status(404).json({ message: "Business not found" });
       }

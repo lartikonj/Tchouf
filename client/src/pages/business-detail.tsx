@@ -174,15 +174,32 @@ export default function BusinessDetail() {
     );
   }
 
-  // Check if current user is the business owner (check both userId and approved claims)
-  const isBusinessOwner = currentUser && (
-    business?.userId === currentUser.id || 
+  // Check if current user is the business owner
+  const isBusinessOwner = currentUser && business && (
+    // Check if user created the business
+    business.createdBy === currentUser.id ||
+    // Check if user has verified ownership through claims
     userClaims?.some((claim: any) => 
-      claim.businessId === business?.id && 
+      claim.businessId === business.id && 
       claim.status === 'approved' && 
       claim.userId === currentUser.id
-    )
+    ) ||
+    // Check if user is the verified owner
+    (business.verified && business.owner && business.owner.id === currentUser.id)
   );
+
+  // Helper function to mask owner name
+  const maskOwnerName = (displayName: string | null, email: string) => {
+    if (displayName) {
+      const nameParts = displayName.split(' ');
+      if (nameParts.length >= 2) {
+        return `${nameParts[0]} ${nameParts[1][0]}.`;
+      }
+      return nameParts[0];
+    }
+    // Fallback to email username
+    return email.split('@')[0];
+  };
 
   const handleClaimBusiness = () => {
     // Handle the claim business logic here
@@ -233,10 +250,7 @@ export default function BusinessDetail() {
                   <div className="flex items-center text-gray-600 mb-2">
                     <Building className="h-5 w-5 mr-2" />
                     <span className="font-medium">
-                      Owned by {business.owner.displayName 
-                        ? `${business.owner.displayName.split(' ')[0]} ${business.owner.displayName.split(' ')[1]?.[0] || ''}.`
-                        : business.owner.email.split('@')[0]
-                      }
+                      Owned by {maskOwnerName(business.owner.displayName, business.owner.email)}
                     </span>
                   </div>
                 )}
@@ -449,8 +463,8 @@ export default function BusinessDetail() {
                     </Link>
                   )}
 
-                  {/* Claim Business - Only show if business is unclaimed and user is logged in */}
-                  {user && !business.claimedBy && !business.verified && !isBusinessOwner && (
+                  {/* Claim Business - Only show if business is not verified or not claimed and user is logged in */}
+                  {user && (!business.verified || !business.claimedBy) && !isBusinessOwner && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"
@@ -478,7 +492,7 @@ export default function BusinessDetail() {
                     </div>
                   )}
 
-                  {!user && !business.verified && !business.claimedBy && (
+                  {!user && (!business.verified || !business.claimedBy) && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <p className="text-sm text-blue-700 text-center">
                         Please sign in to claim this business if you are the owner.
@@ -486,7 +500,7 @@ export default function BusinessDetail() {
                     </div>
                   )}
 
-                  {user && !business.claimedBy && !business.verified && !isBusinessOwner && (
+                  {user && (!business.verified || !business.claimedBy) && !isBusinessOwner && (
                     <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                       <p className="text-xs text-gray-600 text-center">
                         Are you the owner? Click "Claim This Business" to verify your ownership.
