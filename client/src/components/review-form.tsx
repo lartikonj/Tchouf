@@ -30,6 +30,7 @@ export function ReviewForm({ open, onOpenChange, businessId, businessName, exist
   const isEdit = !!existingReview;
 
   const [rating, setRating] = useState(existingReview?.rating || 0);
+  const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState(existingReview?.comment || '');
   const [photo, setPhoto] = useState<File | null>(null);
   const [existingPhotoUrl, setExistingPhotoUrl] = useState(existingReview?.photoUrl || '');

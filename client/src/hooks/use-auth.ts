@@ -33,7 +33,7 @@ export function useAuth() {
         try {
           // Try to get user from our database
           const response = await fetch(`/api/users/uid/${firebaseUser.uid}`);
-          
+
           if (response.ok) {
             const dbUser = await response.json();
             setUser(dbUser);
@@ -46,7 +46,7 @@ export function useAuth() {
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
             };
-            
+
             try {
               const createResponse = await apiRequest('POST', '/api/users', newUser);
               const createdUser = await createResponse.json();
@@ -108,7 +108,7 @@ export function useAuth() {
     try {
       setLoading(true);
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Update profile if displayName provided and not using emulator
       if (displayName && result.user && typeof result.user.updateProfile === 'function') {
         try {
@@ -117,7 +117,7 @@ export function useAuth() {
           console.log('Profile update not supported in emulator');
         }
       }
-      
+
       toast({
         title: "Success",
         description: "Account created successfully!",

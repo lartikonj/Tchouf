@@ -191,6 +191,33 @@ export class FirebaseStorage implements IStorage {
   }
 
   // Review operations
+  async createReview(insertReview: InsertReview): Promise<Review> {
+    const reviewsRef = db.collection('reviews');
+    const counterRef = db.collection('counters').doc('reviews');
+
+    const result = await db.runTransaction(async (transaction) => {
+      const counterDoc = await transaction.get(counterRef);
+      const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
+      const newId = currentId + 1;
+
+      const review: Review = {
+        ...insertReview,
+        id: newId,
+        createdAt: new Date(),
+      };
+
+      transaction.set(counterRef, { count: newId });
+      transaction.set(reviewsRef.doc(newId.toString()), review);
+
+      return review;
+    });
+
+    // Update business rating after creating review
+    await this.updateBusinessRating(result.businessId);
+
+    return result;
+  }
+
   async getReview(id: number): Promise<Review | undefined> {
     const doc = await db.collection('reviews').doc(id.toString()).get();
     if (!doc.exists) return undefined;

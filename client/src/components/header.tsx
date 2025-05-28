@@ -66,11 +66,16 @@ export function Header() {
                       <div className="text-xs text-muted-foreground">{user.email}</div>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/add-business">Add Business</Link>
+                      <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/admin">Admin Dashboard</Link>
+                      <Link href="/add-business">Add Business</Link>
                     </DropdownMenuItem>
+                    {user.isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">Admin Dashboard</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={logout}>
                       {t('auth.signOut')}
                     </DropdownMenuItem>
