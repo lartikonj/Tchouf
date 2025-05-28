@@ -38,12 +38,19 @@ export function ClaimBusinessForm({
         throw new Error('Missing required information');
       }
 
+      // Get the user's database ID by their Firebase UID
+      const userResponse = await fetch(`/api/users/uid/${user.uid}`);
+      if (!userResponse.ok) {
+        throw new Error('User not found in database');
+      }
+      const userData = await userResponse.json();
+
       const response = await fetch('/api/claims', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           businessId: Number(businessId),
-          userId: user.id,
+          userId: userData.id,
           proofUrl: data.proofUrl,
         }),
       });
@@ -60,8 +67,12 @@ export function ClaimBusinessForm({
         title: t('common.success'),
         description: 'Business claim submitted successfully! We will review your request.',
       });
+      // Get user data to invalidate queries
+      const userResponse = await fetch(`/api/users/uid/${user.uid}`);
+      const userData = await userResponse.json();
+      
       queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/claims`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${userData.id}/claims`] });
       onOpenChange(false);
       resetForm();
     },
