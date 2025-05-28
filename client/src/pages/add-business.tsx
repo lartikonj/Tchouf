@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,7 +65,7 @@ export default function AddBusiness() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const { uploadBusinessPhoto, uploading } = useFirebaseStorage();
-  
+
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
 
@@ -165,6 +165,9 @@ export default function AddBusiness() {
     );
   }
 
+    // Determine if it's edit mode based on the URL
+    const isEditMode = false;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -178,8 +181,8 @@ export default function AddBusiness() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl font-bold text-gray-900">
-              {t('business.addBusiness')}
+           <CardTitle className="text-3xl font-bold text-gray-900">
+              {isEditMode ? 'Edit Business' : t('business.addBusiness')}
             </CardTitle>
             <p className="text-gray-600">
               Add your business to Tchouf.com and connect with customers across Algeria

@@ -1,6 +1,7 @@
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ import { Link, useLocation } from 'wouter';
 
 export default function BusinessDetail() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const params = useParams();
   const businessId = parseInt(params.id || '0');
 
@@ -84,20 +86,25 @@ export default function BusinessDetail() {
     );
   }
 
-  // Mock user and userClaims for testing
-  const user = { id: 123, email: 'test@example.com' };
-  const userClaims = [
-    { businessId: business.id, userId: user.id, status: 'approved' }
-  ];
+  // Get user data from auth context
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+    enabled: !!user,
+  });
 
+  // Get user's claims
+  const { data: userClaims } = useQuery({
+    queryKey: [`/api/users/${currentUser?.id}/claims`],
+    enabled: !!currentUser?.id,
+  });
 
   // Check if current user is the business owner (check both userId and approved claims)
-  const isBusinessOwner = user && (
-    business?.userId === user.id || 
+  const isBusinessOwner = currentUser && (
+    business?.userId === currentUser.id || 
     userClaims?.some((claim: any) => 
       claim.businessId === business?.id && 
       claim.status === 'approved' && 
-      claim.userId === user.id
+      claim.userId === currentUser.id
     )
   );
 
@@ -302,7 +309,7 @@ export default function BusinessDetail() {
                   {/* Edit Business Info - Only visible to business owner */}
                   {isBusinessOwner && (
                     <Button
-                      onClick={() => navigate(`/edit-business/${business.id}`)}
+                      onClick={() => navigate(`/add-business?edit=${business.id}`)}
                       className="w-full bg-[#FF6F00] hover:bg-[#E65100]"
                     >
                       <Edit className="h-4 w-4 mr-2" />
