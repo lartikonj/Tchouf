@@ -102,38 +102,64 @@ export class FirebaseStorage implements IStorage {
   }
 
   async getBusinesses(limit = 20, offset = 0): Promise<Business[]> {
-    const snapshot = await db.collection('businesses')
-      .orderBy('createdAt', 'desc')
-      .limit(limit)
-      .offset(offset)
-      .get();
-    
-    return snapshot.docs.map(doc => doc.data() as Business);
+    try {
+      const snapshot = await db.collection('businesses').get();
+      
+      const businesses = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+        } as Business;
+      });
+      
+      return businesses
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+        .slice(offset, offset + limit);
+    } catch (error) {
+      console.error('Error getting businesses:', error);
+      return [];
+    }
   }
 
   async searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]> {
-    // Get all businesses and filter on client side to avoid index requirements
-    const snapshot = await db.collection('businesses').get();
-    let businesses = snapshot.docs.map(doc => doc.data() as Business);
-    
-    // Client-side filtering
-    if (city) {
-      businesses = businesses.filter(business => business.city === city);
+    try {
+      // Get all businesses and filter on client side to avoid index requirements
+      const snapshot = await db.collection('businesses').get();
+      let businesses = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+        } as Business;
+      });
+      
+      // Client-side filtering
+      if (city) {
+        businesses = businesses.filter(business => 
+          business.city && business.city.toLowerCase().includes(city.toLowerCase())
+        );
+      }
+      
+      if (category) {
+        businesses = businesses.filter(business => 
+          business.category && business.category.toLowerCase() === category.toLowerCase()
+        );
+      }
+      
+      if (query) {
+        const lowerQuery = query.toLowerCase();
+        businesses = businesses.filter(business => 
+          (business.name && business.name.toLowerCase().includes(lowerQuery)) ||
+          (business.description && business.description.toLowerCase().includes(lowerQuery))
+        );
+      }
+      
+      return businesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      console.error('Error searching businesses:', error);
+      return [];
     }
-    
-    if (category) {
-      businesses = businesses.filter(business => business.category === category);
-    }
-    
-    if (query) {
-      const lowerQuery = query.toLowerCase();
-      businesses = businesses.filter(business => 
-        business.name.toLowerCase().includes(lowerQuery) ||
-        business.description?.toLowerCase().includes(lowerQuery)
-      );
-    }
-    
-    return businesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
@@ -178,22 +204,46 @@ export class FirebaseStorage implements IStorage {
   }
 
   async getBusinessesByCategory(category: string): Promise<Business[]> {
-    const snapshot = await db.collection('businesses')
-      .where('category', '==', category)
-      .orderBy('avgRating', 'desc')
-      .get();
-    
-    return snapshot.docs.map(doc => doc.data() as Business);
+    try {
+      const snapshot = await db.collection('businesses').get();
+      
+      const businesses = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+        } as Business;
+      });
+      
+      return businesses
+        .filter(business => business.category && business.category.toLowerCase() === category.toLowerCase())
+        .sort((a, b) => b.avgRating - a.avgRating);
+    } catch (error) {
+      console.error('Error getting businesses by category:', error);
+      return [];
+    }
   }
 
   async getFeaturedBusinesses(limit = 6): Promise<Business[]> {
-    const snapshot = await db.collection('businesses')
-      .limit(limit)
-      .get();
-    
-    const businesses = snapshot.docs.map(doc => doc.data() as Business);
-    // Sort by rating on the client side to avoid index requirements
-    return businesses.sort((a, b) => b.avgRating - a.avgRating);
+    try {
+      const snapshot = await db.collection('businesses').get();
+      
+      const businesses = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+        } as Business;
+      });
+      
+      // Sort by rating on the client side to avoid index requirements
+      return businesses
+        .sort((a, b) => b.avgRating - a.avgRating)
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error getting featured businesses:', error);
+      return [];
+    }
   }
 
   // Review operations
