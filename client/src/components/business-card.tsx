@@ -96,7 +96,17 @@ export function BusinessCard({
             {t('business.writeReview')}
           </Button>
           
-          {business.claimedBy ? (
+          {/* Only show claim button if onClaimBusiness is provided and business is not claimed */}
+          {onClaimBusiness && !business.claimedBy ? (
+            <Button
+              onClick={() => onClaimBusiness(business.id)}
+              variant="outline"
+              className="flex-1 border-[#D32F2F] text-[#D32F2F] hover:bg-red-50"
+              size="sm"
+            >
+              {t('business.claimBusiness')}
+            </Button>
+          ) : (
             <Button
               onClick={() => onViewDetails?.(business.id)}
               variant="outline"
@@ -104,15 +114,6 @@ export function BusinessCard({
               size="sm"
             >
               {t('business.viewDetails')}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => onClaimBusiness?.(business.id)}
-              variant="outline"
-              className="flex-1 border-[#D32F2F] text-[#D32F2F] hover:bg-red-50"
-              size="sm"
-            >
-              {t('business.claimBusiness')}
             </Button>
           )}
         </div>

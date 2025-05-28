@@ -475,11 +475,20 @@ export default function UserProfile() {
                               <Badge className="bg-[#388E3C]">Verified</Badge>
                             )}
                           </div>
-                          <Link href={`/business/${business.id}`}>
-                            <Button className="w-full mt-4" variant="outline">
-                              View Details
-                            </Button>
-                          </Link>
+                          <div className="flex space-x-2 mt-4">
+                            <Link href={`/business/${business.id}`} className="flex-1">
+                              <Button className="w-full" variant="outline">
+                                View Details
+                              </Button>
+                            </Link>
+                            {business.verified && (
+                              <Link href={`/add-business?edit=${business.id}`} className="flex-1">
+                                <Button className="w-full bg-[#FF6F00] hover:bg-[#E65100]">
+                                  Edit
+                                </Button>
+                              </Link>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
