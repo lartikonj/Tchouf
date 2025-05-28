@@ -34,7 +34,7 @@ export function ClaimBusinessForm({
 
   const createClaimMutation = useMutation({
     mutationFn: async (data: { proofUrl: string }) => {
-      if (!businessId || !user?.id) {
+      if (!businessId || !user) {
         throw new Error('Missing required information');
       }
 
@@ -61,7 +61,7 @@ export function ClaimBusinessForm({
         description: 'Business claim submitted successfully! We will review your request.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/claims`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/claims`] });
       onOpenChange(false);
       resetForm();
     },
@@ -102,13 +102,7 @@ export function ClaimBusinessForm({
     try {
       const proofUrl = await uploadClaimProof(proofFile);
 
-      const claimData = {
-        businessId,
-        userId: user.id!,
-        proofUrl,
-      };
-
-      createClaimMutation.mutate(claimData);
+      createClaimMutation.mutate({ proofUrl });
     } catch (error) {
       // Error handled by uploadClaimProof
     }
