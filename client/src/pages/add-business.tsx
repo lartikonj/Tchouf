@@ -343,7 +343,7 @@ export default function AddBusiness() {
                   <Select 
                     value={form.watch('category') || ''}
                     onValueChange={(value) => {
-                      form.setValue('category', value);
+                      form.setValue('category', value, { shouldValidate: true });
                       form.clearErrors('category');
                     }}
                   >
@@ -382,7 +382,7 @@ export default function AddBusiness() {
                     <Select 
                       value={form.watch('city') || ''}
                       onValueChange={(value) => {
-                        form.setValue('city', value);
+                        form.setValue('city', value, { shouldValidate: true });
                         form.clearErrors('city');
                       }}
                     >
@@ -518,14 +518,27 @@ export default function AddBusiness() {
                 <Button 
                   type="submit" 
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50"
-                  disabled={uploading || isSubmitting || !form.formState.isValid}
+                  disabled={
+                    uploading || 
+                    isSubmitting || 
+                    !form.watch('name') || 
+                    !form.watch('category') || 
+                    !form.watch('city') || 
+                    !form.watch('address')
+                  }
                   onClick={() => {
                     console.log('Submit button clicked');
                     console.log('Form state:', { 
                       isValid: form.formState.isValid, 
                       errors: form.formState.errors,
                       isSubmitting,
-                      uploading 
+                      uploading,
+                      formValues: {
+                        name: form.watch('name'),
+                        category: form.watch('category'),
+                        city: form.watch('city'),
+                        address: form.watch('address')
+                      }
                     });
                   }}
                 >
