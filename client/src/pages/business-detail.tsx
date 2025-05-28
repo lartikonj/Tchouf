@@ -41,6 +41,7 @@ export default function BusinessDetail() {
   const [claimFormOpen, setClaimFormOpen] = useState(false);
   const [userClaim, setUserClaim] = useState<any | null>(null);
 
+  // All useQuery hooks must be at the top level
   const { data: business, isLoading } = useQuery({
     queryKey: ['/api/businesses', businessId],
     enabled: businessId > 0,
@@ -49,6 +50,18 @@ export default function BusinessDetail() {
   const { data: reviews } = useQuery({
     queryKey: [`/api/businesses/${businessId}/reviews`],
     enabled: businessId > 0,
+  });
+
+  // Get user data from auth context - moved to top level
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
+    enabled: !!user,
+  });
+
+  // Get user's claims - moved to top level
+  const { data: userClaims } = useQuery({
+    queryKey: [`/api/users/${currentUser?.id}/claims`],
+    enabled: !!currentUser?.id,
   });
 
   const renderStars = (rating: number) => {
@@ -94,18 +107,6 @@ export default function BusinessDetail() {
       </div>
     );
   }
-
-  // Get user data from auth context
-  const { data: currentUser } = useQuery({
-    queryKey: ['/api/user'],
-    enabled: !!user,
-  });
-
-  // Get user's claims
-  const { data: userClaims } = useQuery({
-    queryKey: [`/api/users/${currentUser?.id}/claims`],
-    enabled: !!currentUser?.id,
-  });
 
   // Check if current user is the business owner (check both userId and approved claims)
   const isBusinessOwner = currentUser && (
