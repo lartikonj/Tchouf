@@ -322,10 +322,13 @@ export default function AddBusiness() {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
-                  <Select onValueChange={(value) => {
-                    form.setValue('category', value);
-                    form.clearErrors('category');
-                  }}>
+                  <Select 
+                    value={form.watch('category')}
+                    onValueChange={(value) => {
+                      form.setValue('category', value);
+                      form.clearErrors('category');
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -358,10 +361,13 @@ export default function AddBusiness() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
-                    <Select onValueChange={(value) => {
-                      form.setValue('city', value);
-                      form.clearErrors('city');
-                    }}>
+                    <Select 
+                      value={form.watch('city')}
+                      onValueChange={(value) => {
+                        form.setValue('city', value);
+                        form.clearErrors('city');
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>

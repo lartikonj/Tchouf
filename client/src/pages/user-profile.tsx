@@ -263,10 +263,17 @@ export default function UserProfile() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: { firstName?: string; lastName?: string; displayName?: string }) => {
-      // Filter out undefined values
+      // Filter out undefined values but allow empty strings for displayName
       const cleanData = Object.fromEntries(
-        Object.entries(profileData).filter(([_, value]) => value !== undefined && value !== null)
+        Object.entries(profileData).filter(([key, value]) => {
+          if (key === 'displayName') {
+            return value !== undefined && value !== null;
+          }
+          return value !== undefined && value !== null && value !== '';
+        })
       );
+
+      console.log('Sending profile update:', cleanData);
 
       const response = await fetch(`/api/users/uid/${user?.uid}/profile`, {
         method: 'PATCH',
