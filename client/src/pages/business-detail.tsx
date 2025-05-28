@@ -96,7 +96,7 @@ export default function BusinessDetail() {
           <div className="lg:col-span-2 space-y-6">
             {/* Business Header */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4">
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
@@ -149,7 +149,7 @@ export default function BusinessDetail() {
 
             {/* Reviews */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-gray-900">Reviews</h2>
                   <Button 
@@ -217,7 +217,7 @@ export default function BusinessDetail() {
           <div className="space-y-6">
             {/* Contact Info */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
 
                 <div className="space-y-3">
@@ -262,7 +262,7 @@ export default function BusinessDetail() {
 
             {/* Actions */}
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
