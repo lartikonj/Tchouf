@@ -873,19 +873,5 @@ export class FirebaseStorage implements IStorage {
   }
 }
 
-// Get owner information if business is claimed and verified
-      let owner = null;
-      if (business.claimedBy && business.verified) {
-        const ownerDoc = await db.collection('users').doc(business.claimedBy.toString()).get();
-        if (ownerDoc.exists) {
-          const ownerData = ownerDoc.data();
-          owner = {
-            id: ownerData?.id || business.claimedBy,
-            email: ownerData?.email || '',
-            displayName: ownerData?.displayName || null,
-            photoURL: ownerData?.photoURL || null,
-          };
-        }
-      }
 // Export the storage instance
 export const storage = new FirebaseStorage();
