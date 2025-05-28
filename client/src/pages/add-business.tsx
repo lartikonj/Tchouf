@@ -55,6 +55,7 @@ const formSchema = insertBusinessSchema.extend({
   city: z.string().min(1, 'City is required'),
   address: z.string().min(1, 'Address is required'),
   name: z.string().min(1, 'Business name is required'),
+  location: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -80,6 +81,7 @@ export default function AddBusiness() {
       phone: '',
       email: '',
       website: '',
+      location: '',
       photos: [],
       createdBy: user?.id || 0,
     },
@@ -116,6 +118,9 @@ export default function AddBusiness() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('Form submission started with data:', data);
+    console.log('Current user:', user);
+    
     if (!user) {
       toast({
         title: t('common.error'),
@@ -125,13 +130,28 @@ export default function AddBusiness() {
       return;
     }
 
+    // Validate required fields
+    const errors = form.formState.errors;
+    if (Object.keys(errors).length > 0) {
+      console.log('Form validation errors:', errors);
+      toast({
+        title: t('common.error'),
+        description: 'Please fill in all required fields correctly',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
+      console.log('Starting photo upload process...');
       // Upload photos first
       const uploadedPhotoUrls = [...photoUrls];
       for (const photo of selectedPhotos) {
         if (!photoUrls.some(url => url.includes(photo.name))) {
+          console.log('Uploading photo:', photo.name);
           const url = await uploadBusinessPhoto(photo);
           uploadedPhotoUrls.push(url);
+          console.log('Photo uploaded:', url);
         }
       }
 
@@ -144,13 +164,21 @@ export default function AddBusiness() {
         .trim();
 
       const businessData = {
-        ...data,
+        name: data.name,
+        category: data.category,
+        description: data.description || '',
+        city: data.city,
+        address: data.address,
+        phone: data.phone || '',
+        email: data.email || '',
+        website: data.website || '',
+        location: data.location || '',
         slug,
         createdBy: user.id!,
         photos: uploadedPhotoUrls,
       };
 
-      console.log('Submitting business data:', businessData);
+      console.log('Final business data being submitted:', businessData);
       createBusinessMutation.mutate(businessData);
     } catch (error) {
       console.error('Error submitting business:', error);
@@ -261,36 +289,50 @@ export default function AddBusiness() {
               </div>
 
               {/* Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Select onValueChange={(value) => form.setValue('city', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select city" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {algerianCities.map((city) => (
-                        <SelectItem key={city} value={city}>
-                          {city}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.formState.errors.city && (
-                    <p className="text-sm text-red-600">{form.formState.errors.city.message}</p>
-                  )}
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City *</Label>
+                    <Select onValueChange={(value) => form.setValue('city', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select city" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {algerianCities.map((city) => (
+                          <SelectItem key={city} value={city}>
+                            {city}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.formState.errors.city && (
+                      <p className="text-sm text-red-600">{form.formState.errors.city.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address *</Label>
+                    <Input
+                      id="address"
+                      {...form.register('address')}
+                      placeholder="Street address"
+                    />
+                    {form.formState.errors.address && (
+                      <p className="text-sm text-red-600">{form.formState.errors.address.message}</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address *</Label>
+                  <Label htmlFor="location">Location Coordinates (Optional)</Label>
                   <Input
-                    id="address"
-                    {...form.register('address')}
-                    placeholder="Street address"
+                    id="location"
+                    {...form.register('location')}
+                    placeholder="e.g., 36.7372°N, 3.0867°E or Google Maps location link"
                   />
-                  {form.formState.errors.address && (
-                    <p className="text-sm text-red-600">{form.formState.errors.address.message}</p>
-                  )}
+                  <p className="text-sm text-gray-500">
+                    You can paste coordinates (latitude, longitude) or a Google Maps link to help customers find your business
+                  </p>
                 </div>
               </div>
 
@@ -385,8 +427,12 @@ export default function AddBusiness() {
                   type="submit"
                   disabled={createBusinessMutation.isPending || uploading}
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C]"
+                  onClick={() => {
+                    // Trigger validation manually
+                    form.trigger();
+                  }}
                 >
-                  {createBusinessMutation.isPending ? t('common.loading') : 'Add Business'}
+                  {createBusinessMutation.isPending || uploading ? t('common.loading') : 'Add Business'}
                 </Button>
               </div>
             </form>

@@ -159,10 +159,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/businesses", async (req, res, next) => {
     try {
+      console.log('Received business creation request:', req.body);
       const businessData = insertBusinessSchema.parse(req.body);
+      console.log('Parsed business data:', businessData);
       const business = await storage.createBusiness(businessData);
+      console.log('Business created successfully:', business);
       res.json(business);
     } catch (error) {
+      console.error('Error creating business:', error);
       next(error);
     }
   });

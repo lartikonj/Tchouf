@@ -20,6 +20,7 @@ export const businesses = pgTable("businesses", {
   description: text("description"),
   city: text("city").notNull(),
   address: text("address").notNull(),
+  location: text("location"),
   phone: text("phone"),
   email: text("email"),
   website: text("website"),
