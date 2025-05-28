@@ -1,7 +1,8 @@
 import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ReviewForm } from '@/components/review-form';
 import { ClaimBusinessForm } from '@/components/claim-business-form';
+import { ReportReviewDialog } from '@/components/report-review-dialog';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -18,7 +20,9 @@ import {
   Star,
   Building,
   Edit,
-  Clock
+  Clock,
+  ThumbsUp,
+  Flag
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { useRef } from 'react';
@@ -26,6 +30,7 @@ import { useRef } from 'react';
 export default function BusinessDetail() {
   const { t } = useTranslation();
   const { user } = useAuth();
+  const { toast } = useToast();
   const params = useParams();
 
   // Always call hooks in the same order
@@ -52,6 +57,8 @@ export default function BusinessDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [userReview, setUserReview] = useState<any | null>(null);
   const [userClaim, setUserClaim] = useState<any | null>(null);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
   // All useQuery hooks must be at the top level
   const { data: business, isLoading } = useQuery({
@@ -61,6 +68,13 @@ export default function BusinessDetail() {
 
   const { data: reviews } = useQuery({
     queryKey: [`/api/businesses/${businessIdInt}/reviews`],
+    queryFn: () => {
+      const url = new URL(`/api/businesses/${businessIdInt}/reviews`, window.location.origin);
+      if (currentUser?.id) {
+        url.searchParams.append('userId', currentUser.id.toString());
+      }
+      return fetch(url.toString()).then(res => res.json());
+    },
     enabled: businessIdInt > 0,
   });
 
@@ -75,6 +89,46 @@ export default function BusinessDetail() {
     queryKey: [`/api/users/${currentUser?.id}/claims`],
     enabled: !!currentUser?.id,
   });
+
+  const queryClient = useQueryClient();
+
+  const likeMutation = useMutation({
+    mutationFn: async ({ reviewId, userId }: { reviewId: number; userId: number }) => {
+      const response = await fetch(`/api/reviews/${reviewId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like review');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/businesses/${businessIdInt}/reviews`] });
+    },
+  });
+
+  const handleLikeReview = (reviewId: number) => {
+    if (!currentUser) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to like reviews",
+        variant: "destructive",
+      });
+      return;
+    }
+    likeMutation.mutate({ reviewId, userId: currentUser.id! });
+  };
+
+  const handleReportReview = (reviewId: number) => {
+    setSelectedReviewId(reviewId);
+    setReportDialogOpen(true);
+  };
 
   const renderStars = (rating: number) => {
     const safeRating = rating || 0;
@@ -288,9 +342,35 @@ export default function BusinessDetail() {
                             <img
                               src={review.photoUrl}
                               alt="Review photo"
-                              className="w-full max-w-md h-48 object-cover rounded-lg"
+                              className="w-full max-w-md h-48 object-cover rounded-lg mb-3"
                             />
                           )}
+
+                          {/* Like and Report buttons */}
+                          <div className="flex items-center space-x-4 mt-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleLikeReview(review.id)}
+                              disabled={!currentUser || likeMutation.isPending}
+                              className={`flex items-center space-x-1 ${review.isLikedByUser ? 'text-blue-600' : 'text-gray-500'}`}
+                            >
+                              <ThumbsUp className={`h-4 w-4 ${review.isLikedByUser ? 'fill-current' : ''}`} />
+                              <span>{review.likeCount || 0}</span>
+                            </Button>
+
+                            {currentUser && currentUser.id !== review.userId && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleReportReview(review.id)}
+                                className="flex items-center space-x-1 text-gray-500 hover:text-red-600"
+                              >
+                                <Flag className="h-4 w-4" />
+                                <span>Report</span>
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -435,6 +515,16 @@ export default function BusinessDetail() {
         businessId={businessIdInt}
         businessName={business.name}
       />
+
+      {/* Report Review Dialog */}
+      {selectedReviewId && (
+        <ReportReviewDialog
+          open={reportDialogOpen}
+          onOpenChange={setReportDialogOpen}
+          reviewId={selectedReviewId}
+          businessId={businessIdInt}
+        />
+      )}
     </div>
   );
 }

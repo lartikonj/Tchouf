@@ -161,7 +161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/businesses/:id/reviews", async (req, res, next) => {
     try {
       const businessId = parseInt(req.params.id);
-      const reviews = await storage.getReviewsForBusiness(businessId);
+      const currentUserId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const reviews = await storage.getReviewsForBusiness(businessId, currentUserId);
       res.json(reviews);
     } catch (error) {
       next(error);
@@ -218,6 +219,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = parseInt(req.params.id);
       const reviews = await storage.getReviewsForUser(userId);
       res.json(reviews);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Review likes and reports routes
+  app.post("/api/reviews/:id/like", async (req, res, next) => {
+    try {
+      const reviewId = parseInt(req.params.id);
+      const { userId } = req.body;
+      const isLiked = await storage.likeReview(reviewId, userId);
+      res.json({ liked: isLiked });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/reviews/:id/report", async (req, res, next) => {
+    try {
+      const reviewId = parseInt(req.params.id);
+      const { userId, reason } = req.body;
+      await storage.reportReview(reviewId, userId, reason);
+      res.json({ success: true });
     } catch (error) {
       next(error);
     }

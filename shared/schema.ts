@@ -50,6 +50,21 @@ export const claims = pgTable("claims", {
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
 });
 
+export const reviewLikes = pgTable("review_likes", {
+  id: serial("id").primaryKey(),
+  reviewId: integer("review_id").references(() => reviews.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const reviewReports = pgTable("review_reports", {
+  id: serial("id").primaryKey(),
+  reviewId: integer("review_id").references(() => reviews.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  reason: text("reason").notNull(), // "verbal_abuse", "nsfw", "other"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -78,6 +93,16 @@ export const insertClaimSchema = createInsertSchema(claims).omit({
   submittedAt: true,
 });
 
+export const insertReviewLikeSchema = createInsertSchema(reviewLikes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReviewReportSchema = createInsertSchema(reviewReports).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -90,6 +115,12 @@ export type InsertReview = z.infer<typeof insertReviewSchema>;
 
 export type Claim = typeof claims.$inferSelect;
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
+
+export type ReviewLike = typeof reviewLikes.$inferSelect;
+export type InsertReviewLike = z.infer<typeof insertReviewLikeSchema>;
+
+export type ReviewReport = typeof reviewReports.$inferSelect;
+export type InsertReviewReport = z.infer<typeof insertReviewReportSchema>;
 
 // Business with additional data
 export type BusinessWithReviews = Business & {
@@ -106,6 +137,8 @@ export type BusinessWithReviews = Business & {
 
 export type ReviewWithUser = Review & {
   user: User;
+  likeCount?: number;
+  isLikedByUser?: boolean;
 };
 
 export type ClaimWithData = Claim & {

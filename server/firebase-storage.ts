@@ -269,7 +269,7 @@ export class FirebaseStorage implements IStorage {
     } as Review;
   }
 
-  async getReviewsForBusiness(businessId: number): Promise<ReviewWithUser[]> {
+  async getReviewsForBusiness(businessId: number, currentUserId?: number): Promise<ReviewWithUser[]> {
     try {
       const snapshot = await db.collection('reviews').where('businessId', '==', businessId).get();
 
@@ -278,15 +278,37 @@ export class FirebaseStorage implements IStorage {
           const reviewData = doc.data();
           const user = await this.getUser(reviewData.userId);
 
+          // Get like count for this review
+          const likesSnapshot = await db.collection('reviewLikes').where('reviewId', '==', reviewData.id).get();
+          const likeCount = likesSnapshot.size;
+
+          // Check if current user liked this review
+          let isLikedByUser = false;
+          if (currentUserId) {
+            const userLikeSnapshot = await db.collection('reviewLikes')
+              .where('reviewId', '==', reviewData.id)
+              .where('userId', '==', currentUserId)
+              .get();
+            isLikedByUser = !userLikeSnapshot.empty;
+          }
+
           return {
             ...reviewData,
             createdAt: reviewData.createdAt?.toDate ? reviewData.createdAt.toDate() : new Date(reviewData.createdAt),
-            user: user || { id: reviewData.userId, email: 'Unknown', uid: '', createdAt: new Date(), isAdmin: false }
+            user: user || { id: reviewData.userId, email: 'Unknown', uid: '', createdAt: new Date(), isAdmin: false },
+            likeCount,
+            isLikedByUser
           } as ReviewWithUser;
         })
       );
 
-      return reviews.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort by like count (descending), then by creation date
+      return reviews.sort((a, b) => {
+        if (b.likeCount !== a.likeCount) {
+          return (b.likeCount || 0) - (a.likeCount || 0);
+        }
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
     } catch (error) {
       console.error('Error getting reviews for business:', error);
       return [];
@@ -711,6 +733,87 @@ export class FirebaseStorage implements IStorage {
     } catch (error) {
       console.error('Error deleting claim:', error);
       return false;
+    }
+  }
+
+  // Review like methods
+  async likeReview(reviewId: number, userId: number): Promise<boolean> {
+    try {
+      // Check if user already liked this review
+      const existingLike = await db.collection('reviewLikes')
+        .where('reviewId', '==', reviewId)
+        .where('userId', '==', userId)
+        .get();
+
+      if (!existingLike.empty) {
+        // Unlike - remove the like
+        await existingLike.docs[0].ref.delete();
+        return false; // Indicates unliked
+      } else {
+        // Like - add the like
+        const likesRef = db.collection('reviewLikes');
+        const counterRef = db.collection('counters').doc('reviewLikes');
+
+        await db.runTransaction(async (transaction) => {
+          const counterDoc = await transaction.get(counterRef);
+          const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
+          const newId = currentId + 1;
+
+          const like = {
+            id: newId,
+            reviewId,
+            userId,
+            createdAt: new Date(),
+          };
+
+          transaction.set(counterRef, { count: newId });
+          transaction.set(likesRef.doc(newId.toString()), like);
+        });
+
+        return true; // Indicates liked
+      }
+    } catch (error) {
+      console.error('Error toggling review like:', error);
+      throw error;
+    }
+  }
+
+  async reportReview(reviewId: number, userId: number, reason: string): Promise<boolean> {
+    try {
+      // Check if user already reported this review
+      const existingReport = await db.collection('reviewReports')
+        .where('reviewId', '==', reviewId)
+        .where('userId', '==', userId)
+        .get();
+
+      if (!existingReport.empty) {
+        throw new Error('You have already reported this review');
+      }
+
+      const reportsRef = db.collection('reviewReports');
+      const counterRef = db.collection('counters').doc('reviewReports');
+
+      await db.runTransaction(async (transaction) => {
+        const counterDoc = await transaction.get(counterRef);
+        const currentId = counterDoc.exists ? counterDoc.data()?.count || 0 : 0;
+        const newId = currentId + 1;
+
+        const report = {
+          id: newId,
+          reviewId,
+          userId,
+          reason,
+          createdAt: new Date(),
+        };
+
+        transaction.set(counterRef, { count: newId });
+        transaction.set(reportsRef.doc(newId.toString()), report);
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error reporting review:', error);
+      throw error;
     }
   }
 
