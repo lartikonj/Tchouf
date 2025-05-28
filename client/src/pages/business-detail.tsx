@@ -122,7 +122,7 @@ export default function BusinessDetail() {
       });
       return;
     }
-    likeMutation.mutate({ reviewId, userId: currentUser.id! });
+    likeMutation.mutate({ reviewId, userId: currentUser.id });
   };
 
   const handleReportReview = (reviewId: number) => {
@@ -353,7 +353,7 @@ export default function BusinessDetail() {
                               size="sm"
                               onClick={() => handleLikeReview(review.id)}
                               disabled={!currentUser || likeMutation.isPending}
-                              className={`flex items-center space-x-1 ${review.isLikedByUser ? 'text-blue-600' : 'text-gray-500'}`}
+                              className={`flex items-center space-x-1 hover:bg-gray-100 ${review.isLikedByUser ? 'text-blue-600' : 'text-gray-500'}`}
                             >
                               <ThumbsUp className={`h-4 w-4 ${review.isLikedByUser ? 'fill-current' : ''}`} />
                               <span>{review.likeCount || 0}</span>
@@ -364,7 +364,7 @@ export default function BusinessDetail() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleReportReview(review.id)}
-                                className="flex items-center space-x-1 text-gray-500 hover:text-red-600"
+                                className="flex items-center space-x-1 text-gray-500 hover:text-red-600 hover:bg-gray-100"
                               >
                                 <Flag className="h-4 w-4" />
                                 <span>Report</span>
