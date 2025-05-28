@@ -857,12 +857,8 @@ export default function UserProfile() {
                       ) : (
                         <div className="flex items-center space-x-2">
                           <Input
-                            value={
-                              user.firstName && user.lastName
-                                ? `${user.firstName} ${user.lastName.charAt(0)}.`
-                                : user.displayName || ''
-                            }
-                            placeholder="Auto-generated from first and last name"
+                            value={user.displayName || ''}
+                            placeholder="Enter a custom display name"
                             readOnly
                           />
                           <Button size="sm" onClick={handleEditDisplayName}>
@@ -871,7 +867,7 @@ export default function UserProfile() {
                         </div>
                       )}
                       <p className="text-sm text-gray-500 mt-1">
-                        Display name is automatically generated from your first and last name
+                        Your custom display name. If not set, it will be auto-generated from first and last name.
                       </p>
                     </div>
                     <div>

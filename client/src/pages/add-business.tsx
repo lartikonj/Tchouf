@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { insertBusinessSchema } from '@shared/schema';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import { Link } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 
 const categories = [
   'Restaurants',
@@ -71,6 +72,23 @@ export default function AddBusiness() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Get the business ID from the URL, if it exists
+  const [location] = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const editBusinessId = searchParams.get('edit');
+  const isEditMode = !!editBusinessId;
+
+  const { data: businessData, isLoading: isBusinessLoading } = useQuery(
+    ['business', editBusinessId],
+    async () => {
+      if (!editBusinessId) return null;
+      return apiRequest('GET', `/api/businesses/${editBusinessId}`);
+    },
+    {
+      enabled: isEditMode, // Only run query if in edit mode
+    }
+  );
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -96,6 +114,23 @@ export default function AddBusiness() {
     }
   }, [user?.id, form]);
 
+  useEffect(() => {
+    if (businessData) {
+      // Pre-fill the form with business data
+      form.setValue('name', businessData.name);
+      form.setValue('category', businessData.category);
+      form.setValue('description', businessData.description || '');
+      form.setValue('city', businessData.city);
+      form.setValue('address', businessData.address);
+      form.setValue('phone', businessData.phone || '');
+      form.setValue('email', businessData.email || '');
+      form.setValue('website', businessData.website || '');
+      form.setValue('location', businessData.location || '');
+      // Assuming businessData.photos is an array of URLs
+      setPhotoUrls(businessData.photos || []);
+    }
+  }, [businessData, form]);
+
   const createBusinessMutation = useMutation({
     mutationFn: async (businessData: any) => {
       console.log('Creating business with data:', businessData);
@@ -120,61 +155,23 @@ export default function AddBusiness() {
   });
 
   const onSubmit = async (data: FormData) => {
-    console.log('Form submitted with data:', data);
-    console.log('Form errors:', form.formState.errors);
-    console.log('Form valid:', form.formState.isValid);
-    console.log('User:', user);
-    console.log('Selected photos:', selectedPhotos);
-
-    // Check if form is valid
-    if (!form.formState.isValid) {
-      console.error('Form validation failed:', form.formState.errors);
-      toast({
-        title: t('common.error'),
-        description: 'Please fill in all required fields correctly.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!user?.id) {
-      console.error('No user ID found');
-      toast({
-        title: t('common.error'),
-        description: 'You must be signed in to add a business.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (isSubmitting) {
-      console.log('Already submitting, ignoring...');
-      return;
-    }
-
     try {
       setIsSubmitting(true);
-      console.log('Starting submission process...');
 
-      let uploadedPhotoUrls: string[] = [];
+      // Upload photos first
+      const uploadedPhotoUrls = [...photoUrls];
 
-      // Upload photos if any
-      if (selectedPhotos.length > 0) {
-        console.log('Uploading photos...');
-        toast({
-          title: 'Uploading photos...',
-          description: 'Please wait while we upload your photos.',
-        });
-        
-        for (const photo of selectedPhotos) {
-          try {
-            const photoUrl = await uploadBusinessPhoto(photo);
-            uploadedPhotoUrls.push(photoUrl);
-            console.log('Photo uploaded:', photoUrl);
-          } catch (photoError) {
-            console.error('Photo upload failed:', photoError);
-            throw new Error('Failed to upload photos');
-          }
+      for (const photo of selectedPhotos) {
+        try {
+          const photoUrl = await uploadBusinessPhoto(photo);
+          uploadedPhotoUrls.push(photoUrl);
+        } catch (photoError) {
+          console.error('Photo upload failed:', photoError);
+          toast({
+            title: "Warning",
+            description: "Some photos failed to upload but business will be saved",
+            variant: "destructive",
+          });
         }
       }
 
@@ -204,13 +201,19 @@ export default function AddBusiness() {
       console.log('Final business data to submit:', businessData);
 
       toast({
-        title: 'Creating business...',
-        description: 'Please wait while we create your business listing.',
+        title: isEditMode ? 'Updating business...' : 'Creating business...',
+        description: 'Please wait while we ' + (isEditMode ? 'update' : 'create') + ' your business listing.',
       });
 
+      // Determine the URL and method based on edit mode
+      const url = isEditMode
+        ? `/api/businesses/${editBusinessId}`
+        : '/api/businesses';
+      const method = isEditMode ? 'PATCH' : 'POST';
+
       // Make the API call directly instead of using mutation for better error handling
-      const response = await fetch('/api/businesses', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -222,15 +225,15 @@ export default function AddBusiness() {
       if (!response.ok) {
         const errorData = await response.text();
         console.error('API error response:', errorData);
-        throw new Error(`Failed to create business: ${response.status} ${errorData}`);
+        throw new Error(`Failed to ${isEditMode ? 'update' : 'create'} business: ${response.status} ${errorData}`);
       }
 
       const result = await response.json();
-      console.log('Business created successfully:', result);
+      console.log('Business ' + (isEditMode ? 'updated' : 'created') + ' successfully:', result);
 
       toast({
         title: t('common.success'),
-        description: 'Business added successfully!',
+        description: 'Business ' + (isEditMode ? 'updated' : 'added') + ' successfully!',
       });
 
       // Navigate to the new business page using slug if available
@@ -279,9 +282,6 @@ export default function AddBusiness() {
       </div>
     );
   }
-
-    // Determine if it's edit mode based on the URL
-    const isEditMode = false;
 
   return (
     <div className="min-h-screen bg-gray-50">
