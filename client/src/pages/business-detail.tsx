@@ -26,9 +26,7 @@ import { useRef } from 'react';
 export default function BusinessDetail() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [location] = useLocation();
-
-  const businessId = location.split('/')[2];
+  const params = useParams();
 
   // Always call hooks in the same order
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
@@ -38,13 +36,13 @@ export default function BusinessDetail() {
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Get businessId from params
+  const businessIdInt = parseInt(params.id || '0');
+
   // Early return after all hooks are called
-  if (!businessId || isNaN(Number(businessId))) {
+  if (!businessIdInt || isNaN(businessIdInt)) {
     return <div>Invalid business ID</div>;
   }
-
-  const params = useParams();
-  const businessIdInt = parseInt(params.id || '0');
 
   // All useState hooks must be at the top level
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
@@ -398,7 +396,7 @@ export default function BusinessDetail() {
       <ClaimBusinessForm
         open={claimFormOpen}
         onOpenChange={setClaimFormOpen}
-        businessId={business.id}
+        businessId={businessIdInt}
         businessName={business.name}
       />
     </div>
