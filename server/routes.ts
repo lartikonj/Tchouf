@@ -160,14 +160,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/businesses", async (req, res, next) => {
     try {
       console.log('Received business creation request:', req.body);
+      
+      // Validate the request body
+      if (!req.body) {
+        console.error('No request body provided');
+        return res.status(400).json({ error: 'No data provided' });
+      }
+
       const businessData = insertBusinessSchema.parse(req.body);
       console.log('Parsed business data:', businessData);
+      
       const business = await storage.createBusiness(businessData);
       console.log('Business created successfully:', business);
-      res.json(business);
+      
+      res.status(201).json(business);
     } catch (error) {
       console.error('Error creating business:', error);
-      next(error);
+      
+      if (error instanceof Error) {
+        if (error.name === 'ZodError') {
+          return res.status(400).json({ 
+            error: 'Validation failed', 
+            details: error.message 
+          });
+        }
+        return res.status(500).json({ 
+          error: 'Internal server error', 
+          message: error.message 
+        });
+      }
+      
+      res.status(500).json({ error: 'Unknown error occurred' });
     }
   });
 

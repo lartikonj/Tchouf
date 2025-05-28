@@ -69,6 +69,7 @@ export default function AddBusiness() {
 
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -130,18 +131,18 @@ export default function AddBusiness() {
       return;
     }
 
-    // Validate required fields
-    const errors = form.formState.errors;
-    if (Object.keys(errors).length > 0) {
-      console.log('Form validation errors:', errors);
+    // Validate required fields manually
+    if (!data.name || !data.category || !data.city || !data.address) {
+      console.log('Missing required fields:', { name: data.name, category: data.category, city: data.city, address: data.address });
       toast({
         title: t('common.error'),
-        description: 'Please fill in all required fields correctly',
+        description: 'Please fill in all required fields (Name, Category, City, Address)',
         variant: 'destructive',
       });
       return;
     }
 
+    setIsSubmitting(true);
     try {
       console.log('Starting photo upload process...');
       // Upload photos first
@@ -187,6 +188,8 @@ export default function AddBusiness() {
         description: 'Failed to create business. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -260,7 +263,10 @@ export default function AddBusiness() {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
-                  <Select onValueChange={(value) => form.setValue('category', value)}>
+                  <Select onValueChange={(value) => {
+                    form.setValue('category', value);
+                    form.clearErrors('category');
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -293,7 +299,10 @@ export default function AddBusiness() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
-                    <Select onValueChange={(value) => form.setValue('city', value)}>
+                    <Select onValueChange={(value) => {
+                      form.setValue('city', value);
+                      form.clearErrors('city');
+                    }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select city" />
                       </SelectTrigger>
@@ -425,14 +434,10 @@ export default function AddBusiness() {
                 </Link>
                 <Button
                   type="submit"
-                  disabled={createBusinessMutation.isPending || uploading}
+                  disabled={createBusinessMutation.isPending || uploading || isSubmitting}
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C]"
-                  onClick={() => {
-                    // Trigger validation manually
-                    form.trigger();
-                  }}
                 >
-                  {createBusinessMutation.isPending || uploading ? t('common.loading') : 'Add Business'}
+                  {createBusinessMutation.isPending || uploading || isSubmitting ? t('common.loading') : 'Add Business'}
                 </Button>
               </div>
             </form>
