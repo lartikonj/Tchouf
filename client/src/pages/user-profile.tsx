@@ -85,6 +85,8 @@ export default function UserProfile() {
   const [selectedReview, setSelectedReview] = useState<ReviewWithBusiness | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<ClaimWithBusiness | null>(null);
   const [claimDeleteDialogOpen, setClaimDeleteDialogOpen] = useState(false);
+  const [editClaimOpen, setEditClaimOpen] = useState(false);
+  const [newProofFile, setNewProofFile] = useState<File | null>(null);
 
   // Fetch user's businesses
   const { data: userBusinesses, isLoading: businessesLoading } = useQuery({
@@ -190,6 +192,40 @@ export default function UserProfile() {
     },
   });
 
+  // Edit claim mutation
+  const editClaimMutation = useMutation({
+    mutationFn: async ({ claimId, proofUrl }: { claimId: number; proofUrl: string }) => {
+      const response = await fetch(`/api/claims/${claimId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          businessId: selectedClaim?.businessId,
+          userId: selectedClaim?.userId,
+          proofUrl 
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to update claim');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/claims`] });
+      setEditClaimOpen(false);
+      setSelectedClaim(null);
+      setNewProofFile(null);
+      toast({
+        title: "Success",
+        description: "Claim updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update claim",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete account mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
@@ -237,9 +273,39 @@ export default function UserProfile() {
     setClaimDeleteDialogOpen(true);
   };
 
+  const handleEditClaim = (claim: ClaimWithBusiness) => {
+    setSelectedClaim(claim);
+    setEditClaimOpen(true);
+  };
+
   const confirmDeleteClaim = () => {
     if (selectedClaim) {
       deleteClaimMutation.mutate(selectedClaim.id);
+    }
+  };
+
+  const handleUpdateClaim = async () => {
+    if (!selectedClaim || !newProofFile) {
+      toast({
+        title: "Error",
+        description: "Please select a new proof document",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const proofUrl = await uploadFile(newProofFile, 'claim-proofs');
+      editClaimMutation.mutate({ 
+        claimId: selectedClaim.id, 
+        proofUrl 
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload proof document",
+        variant: "destructive",
+      });
     }
   };
 
@@ -571,14 +637,24 @@ export default function UserProfile() {
                                 </Button>
                               </Link>
                               {claim.status === 'pending' && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleDeleteClaim(claim)}
-                                  disabled={deleteClaimMutation.isPending}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleEditClaim(claim)}
+                                    disabled={editClaimMutation.isPending}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleDeleteClaim(claim)}
+                                    disabled={deleteClaimMutation.isPending}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>
@@ -705,6 +781,67 @@ export default function UserProfile() {
           isEdit={true}
         />
       )}
+
+      {/* Edit Claim Dialog */}
+      <Dialog open={editClaimOpen} onOpenChange={setEditClaimOpen}>
+        <DialogContent className="w-[90vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Claim</DialogTitle>
+            <DialogDescription>
+              Update the proof document for "{selectedClaim?.business.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="current-proof">Current Proof Document</Label>
+              {selectedClaim && (
+                <div className="mt-2">
+                  <a 
+                    href={selectedClaim.proofUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 underline text-sm"
+                  >
+                    View Current Document
+                  </a>
+                </div>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="new-proof">New Proof Document</Label>
+              <Input
+                id="new-proof"
+                type="file"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={(e) => setNewProofFile(e.target.files?.[0] || null)}
+                disabled={uploading || editClaimMutation.isPending}
+                className="mt-2"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Accepted formats: PDF, DOC, DOCX, JPG, JPEG, PNG
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setEditClaimOpen(false);
+                setSelectedClaim(null);
+                setNewProofFile(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateClaim}
+              disabled={uploading || editClaimMutation.isPending || !newProofFile}
+            >
+              {uploading || editClaimMutation.isPending ? 'Updating...' : 'Update Claim'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Claim Confirmation Dialog */}
       <Dialog open={claimDeleteDialogOpen} onOpenChange={setClaimDeleteDialogOpen}>
