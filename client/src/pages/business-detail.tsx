@@ -26,7 +26,7 @@ import { useRef } from 'react';
 export default function BusinessDetail() {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const location = useLocation();
+  const [location] = useLocation();
 
   const businessId = location.split('/')[2];
 
