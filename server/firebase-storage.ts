@@ -419,16 +419,11 @@ export class FirebaseStorage implements IStorage {
 
     if (!userDoc.exists) return null;
 
-      // Generate displayName if firstName and lastName are provided
-      let displayName = updates.displayName;
-      if (updates.firstName && updates.lastName) {
-        displayName = `${updates.firstName} ${updates.lastName.charAt(0)}.`;
-      }
-
-      const updateData = {
-        ...updates,
-        displayName: displayName || updates.displayName
-      };
+    // Only auto-generate display name if it's not explicitly provided and we have both first and last name
+    const updateData = { ...updates };
+    if (!updates.displayName && updates.firstName && updates.lastName) {
+      updateData.displayName = `${updates.firstName} ${updates.lastName.charAt(0)}.`;
+    }
 
     await userRef.update(updateData);
 
@@ -445,12 +440,17 @@ export class FirebaseStorage implements IStorage {
     }
 
     const userDoc = snapshot.docs[0].ref;
-    //const userId = parseInt(userDoc.id);
+    const currentUserData = snapshot.docs[0].data();
 
     // Filter out undefined values to prevent Firestore errors
     const cleanUpdates = Object.fromEntries(
       Object.entries(updates).filter(([_, value]) => value !== undefined && value !== null)
     );
+
+    // Only auto-generate display name if it's not explicitly provided and we have both first and last name
+    if (!cleanUpdates.displayName && cleanUpdates.firstName && cleanUpdates.lastName) {
+      cleanUpdates.displayName = `${cleanUpdates.firstName} ${cleanUpdates.lastName.charAt(0)}.`;
+    }
 
     // Update the document
     await userDoc.update(cleanUpdates);
