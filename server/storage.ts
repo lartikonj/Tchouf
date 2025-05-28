@@ -153,6 +153,27 @@ export class MemStorage implements IStorage {
     return updatedBusiness;
   }
 
+  async deleteBusiness(id: number): Promise<boolean> {
+    const business = this.businesses.get(id);
+    if (!business) return false;
+
+    // Delete associated reviews
+    const businessReviews = Array.from(this.reviews.values()).filter(
+      review => review.businessId === id
+    );
+    businessReviews.forEach(review => this.reviews.delete(review.id));
+
+    // Delete associated claims
+    const businessClaims = Array.from(this.claims.values()).filter(
+      claim => claim.businessId === id
+    );
+    businessClaims.forEach(claim => this.claims.delete(claim.id));
+
+    // Delete the business
+    this.businesses.delete(id);
+    return true;
+  }
+
   async getBusinessesByCategory(category: string): Promise<Business[]> {
     return Array.from(this.businesses.values())
       .filter(business => business.category.toLowerCase() === category.toLowerCase());

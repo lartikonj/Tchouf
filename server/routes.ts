@@ -121,6 +121,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/businesses/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      const business = await storage.updateBusiness(id, updates);
+      if (!business) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      res.json(business);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/businesses/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBusiness(id);
+      if (!success) {
+        return res.status(404).json({ message: "Business not found" });
+      }
+      res.json({ message: "Business deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Review routes
   app.get("/api/reviews/recent", async (req, res, next) => {
     try {
