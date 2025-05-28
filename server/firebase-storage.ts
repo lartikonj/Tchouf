@@ -72,7 +72,13 @@ export class FirebaseStorage implements IStorage {
   async getBusiness(id: number): Promise<Business | undefined> {
     const doc = await db.collection('businesses').doc(id.toString()).get();
     if (!doc.exists) return undefined;
-    return doc.data() as Business;
+    const data = doc.data()!;
+    return {
+      ...data,
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+      avgRating: data.avgRating || 0,
+      reviewCount: data.reviewCount || 0
+    } as Business;
   }
 
   async getBusinessWithReviews(id: number): Promise<BusinessWithReviews | undefined> {
@@ -86,7 +92,16 @@ export class FirebaseStorage implements IStorage {
   async getBusinesses(limit = 20, offset = 0): Promise<Business[]> {
     try {
       const snapshot = await db.collection('businesses').limit(limit).offset(offset).get();
-      return snapshot.docs.map(doc => doc.data() as Business);
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: parseInt(doc.id),
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+          avgRating: data.avgRating || 0,
+          reviewCount: data.reviewCount || 0
+        } as Business;
+      });
     } catch (error) {
       console.error('Error getting businesses:', error);
       return [];
@@ -281,33 +296,38 @@ export class FirebaseStorage implements IStorage {
   }
 
   async getReviewsForUser(userId: number): Promise<any[]> {
-    const reviewsRef = db.collection('reviews');
+    try {
+      const reviewsRef = db.collection('reviews');
 
-    const snapshot = await reviewsRef
-      .where('userId', '==', userId)
-      .get();
+      const snapshot = await reviewsRef
+        .where('userId', '==', userId)
+        .get();
 
-    const reviewsWithBusiness = [];
-    for (const doc of snapshot.docs) {
-      const review = { id: parseInt(doc.id), ...doc.data() };
-      const businessDoc = await db.collection('businesses').doc(review.businessId.toString()).get();
+      const reviewsWithBusiness = [];
+      for (const doc of snapshot.docs) {
+        const review = { id: parseInt(doc.id), ...doc.data() };
+        const businessDoc = await db.collection('businesses').doc(review.businessId.toString()).get();
 
-      if (businessDoc.exists) {
-        const business = { id: review.businessId, ...businessDoc.data() };
-        reviewsWithBusiness.push({ 
-          ...review, 
-          createdAt: review.createdAt?.toDate ? review.createdAt.toDate() : new Date(review.createdAt),
-          business: {
-            id: business.id,
-            name: business.name,
-            category: business.category
-          }
-        });
+        if (businessDoc.exists) {
+          const business = { id: review.businessId, ...businessDoc.data() };
+          reviewsWithBusiness.push({ 
+            ...review, 
+            createdAt: review.createdAt?.toDate ? review.createdAt.toDate() : new Date(review.createdAt),
+            business: {
+              id: business.id,
+              name: business.name,
+              category: business.category
+            }
+          });
+        }
       }
-    }
 
-    // Sort by createdAt in memory
-    return reviewsWithBusiness.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      // Sort by createdAt in memory
+      return reviewsWithBusiness.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      console.error('Error getting reviews for user:', error);
+      return [];
+    }
   }
 
   async getUserReviewForBusiness(userId: number, businessId: number): Promise<Review | null> {
@@ -429,15 +449,27 @@ export class FirebaseStorage implements IStorage {
         .where('claimedBy', '==', userId)
         .get();
 
-      const createdBusinesses = createdSnapshot.docs.map(doc => ({
-        id: parseInt(doc.id),
-        ...doc.data()
-      } as Business));
+      const createdBusinesses = createdSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: parseInt(doc.id),
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+          avgRating: data.avgRating || 0,
+          reviewCount: data.reviewCount || 0
+        } as Business;
+      });
 
-      const claimedBusinesses = claimedSnapshot.docs.map(doc => ({
-        id: parseInt(doc.id),
-        ...doc.data()
-      } as Business));
+      const claimedBusinesses = claimedSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: parseInt(doc.id),
+          ...data,
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt),
+          avgRating: data.avgRating || 0,
+          reviewCount: data.reviewCount || 0
+        } as Business;
+      });
 
       // Combine and remove duplicates
       const allBusinesses = [...createdBusinesses];

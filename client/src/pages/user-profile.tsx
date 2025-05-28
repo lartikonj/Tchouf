@@ -90,6 +90,7 @@ export default function UserProfile() {
   const { data: userBusinesses, isLoading: businessesLoading } = useQuery({
     queryKey: [`/api/users/${user?.id}/businesses`],
     enabled: !!user?.id,
+    refetchInterval: 30000, // Refetch every 30 seconds to pick up approved claims
   });
 
   // Fetch user's reviews

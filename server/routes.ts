@@ -180,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!claim) {
         return res.status(404).json({ message: "Claim not found" });
       }
-      res.json(claim);
+      res.json({ ...claim, success: true });
     } catch (error) {
       next(error);
     }
