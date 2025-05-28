@@ -406,7 +406,10 @@ export default function UserProfile() {
               
               <div className="flex-1 text-center sm:text-left">
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  {user.displayName || user.email.split('@')[0]}
+                  {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName.charAt(0)}.`
+                    : user.displayName || user.email.split('@')[0]
+                  }
                 </h1>
                 <p className="text-gray-600 text-sm sm:text-base">{user.email}</p>
                 <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-2 sm:space-y-0 sm:space-x-4 mt-2">
@@ -701,15 +704,44 @@ export default function UserProfile() {
                 <div className="border-b pb-6">
                   <h3 className="text-lg font-medium mb-4">Profile Information</h3>
                   <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>First Name</Label>
+                        <Input 
+                          value={user.firstName || ''} 
+                          placeholder="Enter your first name"
+                          onChange={(e) => {
+                            // Update user state optimistically
+                            const updatedUser = { ...user, firstName: e.target.value };
+                            // Here you would call an API to update the user
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Label>Last Name</Label>
+                        <Input 
+                          value={user.lastName || ''} 
+                          placeholder="Enter your last name"
+                          onChange={(e) => {
+                            // Update user state optimistically
+                            const updatedUser = { ...user, lastName: e.target.value };
+                            // Here you would call an API to update the user
+                          }}
+                        />
+                      </div>
+                    </div>
                     <div>
                       <Label>Display Name</Label>
                       <Input 
-                        value={user.displayName || ''} 
-                        placeholder="Enter your display name"
+                        value={user.firstName && user.lastName 
+                          ? `${user.firstName} ${user.lastName.charAt(0)}.`
+                          : user.displayName || ''
+                        } 
+                        placeholder="Auto-generated from first and last name"
                         readOnly
                       />
                       <p className="text-sm text-gray-500 mt-1">
-                        Contact support to change your display name
+                        Display name is automatically generated from your first and last name
                       </p>
                     </div>
                     <div>

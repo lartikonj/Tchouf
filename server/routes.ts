@@ -416,6 +416,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/users/:id/profile", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = z.object({ 
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        displayName: z.string().optional()
+      }).parse(req.body);
+
+      const user = await storage.updateUserProfile(id, updates);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.delete("/api/users/:id", async (req, res, next) => {
     try {
       const id = parseInt(req.params.id);

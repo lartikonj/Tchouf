@@ -119,40 +119,43 @@ export default function AddBusiness() {
   });
 
   const onSubmit = async (data: FormData) => {
-    console.log('Form submission started with data:', data);
-    console.log('Current user:', user);
-    
-    if (!user) {
+    console.log('Form submitted with data:', data);
+    console.log('User:', user);
+    console.log('Selected photos:', selectedPhotos);
+
+    if (!user?.id) {
+      console.error('No user ID found');
       toast({
         title: t('common.error'),
-        description: 'Please sign in to add a business',
+        description: 'You must be signed in to add a business.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Validate required fields manually
-    if (!data.name || !data.category || !data.city || !data.address) {
-      console.log('Missing required fields:', { name: data.name, category: data.category, city: data.city, address: data.address });
-      toast({
-        title: t('common.error'),
-        description: 'Please fill in all required fields (Name, Category, City, Address)',
-        variant: 'destructive',
-      });
+    if (isSubmitting) {
+      console.log('Already submitting, ignoring...');
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      console.log('Starting photo upload process...');
-      // Upload photos first
-      const uploadedPhotoUrls = [...photoUrls];
-      for (const photo of selectedPhotos) {
-        if (!photoUrls.some(url => url.includes(photo.name))) {
-          console.log('Uploading photo:', photo.name);
-          const url = await uploadBusinessPhoto(photo);
-          uploadedPhotoUrls.push(url);
-          console.log('Photo uploaded:', url);
+      setIsSubmitting(true);
+      console.log('Starting submission process...');
+
+      let uploadedPhotoUrls: string[] = [];
+
+      // Upload photos if any
+      if (selectedPhotos.length > 0) {
+        console.log('Uploading photos...');
+        for (const photo of selectedPhotos) {
+          try {
+            const photoUrl = await uploadBusinessPhoto(photo);
+            uploadedPhotoUrls.push(photoUrl);
+            console.log('Photo uploaded:', photoUrl);
+          } catch (photoError) {
+            console.error('Photo upload failed:', photoError);
+            throw new Error('Failed to upload photos');
+          }
         }
       }
 
@@ -170,22 +173,50 @@ export default function AddBusiness() {
         description: data.description || '',
         city: data.city,
         address: data.address,
+        location: data.location || '',
         phone: data.phone || '',
         email: data.email || '',
         website: data.website || '',
-        location: data.location || '',
         slug,
-        createdBy: user.id!,
+        createdBy: user.id,
         photos: uploadedPhotoUrls,
       };
 
-      console.log('Final business data being submitted:', businessData);
-      createBusinessMutation.mutate(businessData);
+      console.log('Final business data to submit:', businessData);
+
+      // Make the API call directly instead of using mutation for better error handling
+      const response = await fetch('/api/businesses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(businessData),
+      });
+
+      console.log('API response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('API error response:', errorData);
+        throw new Error(`Failed to create business: ${response.status} ${errorData}`);
+      }
+
+      const result = await response.json();
+      console.log('Business created successfully:', result);
+
+      toast({
+        title: t('common.success'),
+        description: 'Business added successfully!',
+      });
+
+      // Navigate to the new business page
+      navigate(`/business/${result.id}`);
+
     } catch (error) {
       console.error('Error submitting business:', error);
       toast({
         title: t('common.error'),
-        description: 'Failed to create business. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to create business. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -432,12 +463,12 @@ export default function AddBusiness() {
                     {t('form.cancel')}
                   </Button>
                 </Link>
-                <Button
-                  type="submit"
-                  disabled={createBusinessMutation.isPending || uploading || isSubmitting}
+                <Button 
+                  type="submit" 
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C]"
+                  disabled={uploading || isSubmitting}
                 >
-                  {createBusinessMutation.isPending || uploading || isSubmitting ? t('common.loading') : 'Add Business'}
+                  {uploading ? t('common.uploading') : isSubmitting ? 'Creating Business...' : t('addBusiness.addButton')}
                 </Button>
               </div>
             </form>

@@ -137,7 +137,7 @@ export class MemStorage implements IStorage {
 
   async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
     const id = this.currentBusinessId++;
-    
+
     // Generate slug if not provided
     let slug = insertBusiness.slug;
     if (!slug && insertBusiness.name) {
@@ -340,6 +340,34 @@ export class MemStorage implements IStorage {
     }
 
     return updatedClaim;
+  }
+
+  async updateUserPhoto(id: number, photoURL: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+
+    const updatedUser = { ...user, photoURL };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
+
+  async updateUserProfile(id: number, updates: { firstName?: string; lastName?: string; displayName?: string }): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+
+    // Generate displayName if firstName and lastName are provided
+    let displayName = updates.displayName;
+    if (updates.firstName && updates.lastName) {
+      displayName = `${updates.firstName} ${updates.lastName.charAt(0)}.`;
+    }
+
+    const updatedUser = { 
+      ...user, 
+      ...updates,
+      displayName: displayName || user.displayName
+    };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   constructor() {

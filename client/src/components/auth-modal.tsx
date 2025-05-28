@@ -21,20 +21,22 @@ export function AuthModal({ open, onOpenChange, mode, onModeChange }: AuthModalP
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    displayName: '',
+    firstName: '',
+    lastName: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       if (mode === 'login') {
         await signIn(formData.email, formData.password);
       } else {
-        await signUp(formData.email, formData.password, formData.displayName);
+        const displayName = `${formData.firstName} ${formData.lastName}`.trim();
+        await signUp(formData.email, formData.password, displayName);
       }
       onOpenChange(false);
-      setFormData({ email: '', password: '', displayName: '' });
+      setFormData({ email: '', password: '', firstName: '', lastName: '' });
     } catch (error) {
       // Error is handled in useAuth hook
     }
@@ -63,17 +65,28 @@ export function AuthModal({ open, onOpenChange, mode, onModeChange }: AuthModalP
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'signup' && (
-            <div className="space-y-2">
-              <Label htmlFor="displayName">Full Name</Label>
-              <Input
-                id="displayName"
-                value={formData.displayName}
-                onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
-                placeholder="Enter your full name"
-              />
-            </div>
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  placeholder="Enter your first name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  placeholder="Enter your last name"
+                />
+              </div>
+            </>
           )}
-          
+
           <div className="space-y-2">
             <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
@@ -85,7 +98,7 @@ export function AuthModal({ open, onOpenChange, mode, onModeChange }: AuthModalP
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="password">{t('auth.password')}</Label>
             <Input
@@ -98,7 +111,7 @@ export function AuthModal({ open, onOpenChange, mode, onModeChange }: AuthModalP
               minLength={6}
             />
           </div>
-          
+
           <Button type="submit" className="w-full bg-[#D32F2F] hover:bg-[#B71C1C]" disabled={loading}>
             {mode === 'login' ? t('auth.signIn') : t('auth.signUp')}
           </Button>

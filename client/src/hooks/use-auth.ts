@@ -16,6 +16,8 @@ interface AuthUser {
   id?: number;
   uid: string;
   email: string;
+  firstName?: string;
+  lastName?: string;
   displayName?: string;
   photoURL?: string;
   isAdmin?: boolean;
@@ -40,9 +42,18 @@ export function useAuth() {
           } else if (response.status === 404 && !creatingUser) {
             // User doesn't exist in our database, create them
             setCreatingUser(true);
+            
+            // Parse displayName into firstName and lastName
+            const fullName = firebaseUser.displayName || '';
+            const nameParts = fullName.split(' ');
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+            
             const newUser = {
               uid: firebaseUser.uid,
               email: firebaseUser.email!,
+              firstName,
+              lastName,
               displayName: firebaseUser.displayName,
               photoURL: firebaseUser.photoURL,
             };
