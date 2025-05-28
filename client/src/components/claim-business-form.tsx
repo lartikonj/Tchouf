@@ -29,12 +29,31 @@ export function ClaimBusinessForm({
   const { toast } = useToast();
   const { uploadClaimProof, uploading } = useFirebaseStorage();
   const queryClient = useQueryClient();
-  
+
   const [proofFile, setProofFile] = useState<File | null>(null);
 
   const createClaimMutation = useMutation({
-    mutationFn: async (claimData: any) => {
-      return apiRequest('POST', '/api/claims', claimData);
+    mutationFn: async (data: { proofUrl: string }) => {
+      if (!businessId || !user?.id) {
+        throw new Error('Missing required information');
+      }
+
+      const response = await fetch('/api/claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId: Number(businessId),
+          userId: user.id,
+          proofUrl: data.proofUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit claim');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -61,7 +80,7 @@ export function ClaimBusinessForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: t('common.error'),
