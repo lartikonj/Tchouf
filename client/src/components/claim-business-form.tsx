@@ -62,17 +62,23 @@ export function ClaimBusinessForm({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: t('common.success'),
         description: 'Business claim submitted successfully! We will review your request.',
       });
-      // Get user data to invalidate queries
-      const userResponse = await fetch(`/api/users/uid/${user.uid}`);
-      const userData = await userResponse.json();
       
-      queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${userData.id}/claims`] });
+      try {
+        // Get user data to invalidate queries
+        const userResponse = await fetch(`/api/users/uid/${user.uid}`);
+        const userData = await userResponse.json();
+        
+        queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
+        queryClient.invalidateQueries({ queryKey: [`/api/users/${userData.id}/claims`] });
+      } catch (error) {
+        console.error('Error invalidating queries:', error);
+      }
+      
       onOpenChange(false);
       resetForm();
     },

@@ -21,14 +21,30 @@ import {
   Clock
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
+import { useRef } from 'react';
 
 export default function BusinessDetail() {
   const { t } = useTranslation();
-  const navigate = useLocation()[1];
-  const params = useParams();
-  const businessId = parseInt(params.id || '0');
-
   const { user } = useAuth();
+  const location = useLocation();
+
+  const businessId = location.split('/')[2];
+
+  // Always call hooks in the same order
+  const [reviewFormOpen, setReviewFormOpen] = useState(false);
+  const [claimFormOpen, setClaimFormOpen] = useState(false);
+  const [photoViewOpen, setPhotoViewOpen] = useState(false);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Early return after all hooks are called
+  if (!businessId || isNaN(Number(businessId))) {
+    return <div>Invalid business ID</div>;
+  }
+
+  const params = useParams();
+  const businessIdInt = parseInt(params.id || '0');
 
   // All useState hooks must be at the top level
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
@@ -36,20 +52,18 @@ export default function BusinessDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [userReview, setUserReview] = useState<any | null>(null);
-  const [claimFormOpen, setClaimFormOpen] = useState(false);
   const [userClaim, setUserClaim] = useState<any | null>(null);
 
   // All useQuery hooks must be at the top level
   const { data: business, isLoading } = useQuery({
-    queryKey: ['/api/businesses', businessId],
-    enabled: businessId > 0,
+    queryKey: ['/api/businesses', businessIdInt],
+    enabled: businessIdInt > 0,
   });
 
   const { data: reviews } = useQuery({
-    queryKey: [`/api/businesses/${businessId}/reviews`],
-    enabled: businessId > 0,
+    queryKey: [`/api/businesses/${businessIdInt}/reviews`],
+    enabled: businessIdInt > 0,
   });
 
   // Get user data from auth context - moved to top level
@@ -144,7 +158,7 @@ export default function BusinessDetail() {
                 <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{business.name}</h1>
 
                 <p className="text-gray-600 text-lg mb-2">{business.category}</p>
-                
+
                 {/* Business Owner Info - Only show if business is verified and has an owner */}
                 {business.verified && business.owner && (
                   <div className="flex items-center text-gray-600 mb-2">
@@ -157,7 +171,7 @@ export default function BusinessDetail() {
                     </span>
                   </div>
                 )}
-                
+
                 <div className="flex items-center text-gray-600 mb-2">
                   <MapPin className="h-5 w-5 mr-2" />
                   <span>{business.address}</span>
@@ -359,7 +373,7 @@ export default function BusinessDetail() {
                       This business is verified and managed by its owner.
                     </p>
                   )}
-                  
+
                   {/* If business is claimed but not verified */}
                   {!isBusinessOwner && !business.verified && business.claimedBy && (
                     <p className="text-sm text-gray-500 text-center py-4">
