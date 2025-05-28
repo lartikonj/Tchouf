@@ -100,8 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const businesses = await storage.getBusinesses(limit, offset);
       res.json(businesses);
     } catch (error) {
-      console.error('Error fetching businesses:', error);
-      res.status(500).json({ error: 'Failed to fetch businesses' });
+      next(error);
     }
   });
 
@@ -139,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/businesses/:identifier', async (req, res) => {
+  app.get('/api/businesses/:identifier', async (req, res, next) => {
     try {
       const identifier = req.params.identifier;
       let business;
@@ -184,8 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(completeBusinessData);
     } catch (error) {
-      console.error('Error fetching business:', error);
-      res.status(500).json({ error: 'Failed to fetch business' });
+      next(error);
     }
   });
 
@@ -364,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's claims
-  app.get('/api/users/:userId/claims', async (req, res) => {
+  app.get('/api/users/:userId/claims', async (req, res, next) => {
     try {
       const userId = parseInt(req.params.userId);
       console.log('Fetching claims for user:', userId);
@@ -372,8 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Found claims:', claims);
       res.json(claims);
     } catch (error) {
-      console.error('Error fetching user claims:', error);
-      res.status(500).json({ error: 'Failed to fetch claims' });
+      next(error);
     }
   });
 
