@@ -181,11 +181,12 @@ export class FirebaseStorage implements IStorage {
 
   async getFeaturedBusinesses(limit = 6): Promise<Business[]> {
     const snapshot = await db.collection('businesses')
-      .orderBy('avgRating', 'desc')
       .limit(limit)
       .get();
     
-    return snapshot.docs.map(doc => doc.data() as Business);
+    const businesses = snapshot.docs.map(doc => doc.data() as Business);
+    // Sort by rating on the client side to avoid index requirements
+    return businesses.sort((a, b) => b.avgRating - a.avgRating);
   }
 
   // Review operations
