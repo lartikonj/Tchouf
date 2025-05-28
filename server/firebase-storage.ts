@@ -693,6 +693,38 @@ export class FirebaseStorage implements IStorage {
 
     return this.getClaim(id);
   }
+
+  async updateBusiness(id: number, updates: Partial<Business>): Promise<Business | undefined> {
+    const snapshot = await db.collection('businesses').where('id', '==', id).get();
+    if (snapshot.empty) return undefined;
+
+    const doc = snapshot.docs[0];
+    const updatedBusiness = { ...doc.data(), ...updates };
+    await doc.ref.update(updatedBusiness);
+    return updatedBusiness as Business;
+  }
+
+  async deleteBusiness(id: number): Promise<boolean> {
+    const batch = db.batch();
+
+    // Delete the business
+    const businessSnapshot = await db.collection('businesses').where('id', '==', id).get();
+    if (businessSnapshot.empty) return false;
+
+    const businessDoc = businessSnapshot.docs[0];
+    batch.delete(businessDoc.ref);
+
+    // Delete associated reviews
+    const reviewsSnapshot = await db.collection('reviews').where('businessId', '==', id).get();
+    reviewsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+    // Delete associated claims
+    const claimsSnapshot = await db.collection('claims').where('businessId', '==', id).get();
+    claimsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+
+    await batch.commit();
+    return true;
+  }
 }
 
 // Export the storage instance

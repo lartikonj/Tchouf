@@ -20,6 +20,7 @@ export interface IStorage {
   searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]>;
   createBusiness(business: InsertBusiness): Promise<Business>;
   updateBusiness(id: number, updates: Partial<Business>): Promise<Business | undefined>;
+  deleteBusiness(id: number): Promise<boolean>;
   getBusinessesByCategory(category: string): Promise<Business[]>;
   getFeaturedBusinesses(limit?: number): Promise<Business[]>;
   getBusinessesForUser(userId: number): Promise<Business[]>;
