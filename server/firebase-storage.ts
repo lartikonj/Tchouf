@@ -512,6 +512,12 @@ export class FirebaseStorage implements IStorage {
   }
 
   async createClaim(insertClaim: InsertClaim): Promise<Claim> {
+    // Check if user already has a claim for this business
+    const existingClaim = await this.getUserClaimForBusiness(insertClaim.userId, insertClaim.businessId);
+    if (existingClaim) {
+      throw new Error('You have already submitted a claim for this business.');
+    }
+
     const claimsRef = db.collection('claims');
     const counterRef = db.collection('counters').doc('claims');
 
@@ -536,6 +542,101 @@ export class FirebaseStorage implements IStorage {
     });
 
     return result;
+  }
+
+  async getUserClaimForBusiness(userId: number, businessId: number): Promise<Claim | null> {
+    try {
+      const snapshot = await db.collection('claims')
+        .where('userId', '==', userId)
+        .where('businessId', '==', businessId)
+        .get();
+
+      if (snapshot.empty) return null;
+
+      const doc = snapshot.docs[0];
+      const data = doc.data();
+      return {
+        id: parseInt(doc.id),
+        ...data,
+        submittedAt: data.submittedAt?.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt),
+        reviewedAt: data.reviewedAt?.toDate ? data.reviewedAt.toDate() : data.reviewedAt
+      } as Claim;
+    } catch (error) {
+      console.error('Error getting user claim for business:', error);
+      return null;
+    }
+  }
+
+  async getClaimsForUser(userId: number): Promise<any[]> {
+    try {
+      const snapshot = await db.collection('claims')
+        .where('userId', '==', userId)
+        .get();
+
+      const claimsWithBusiness = [];
+      for (const doc of snapshot.docs) {
+        const claim = { id: parseInt(doc.id), ...doc.data() };
+        const businessDoc = await db.collection('businesses').doc(claim.businessId.toString()).get();
+
+        if (businessDoc.exists) {
+          const business = { id: claim.businessId, ...businessDoc.data() };
+          claimsWithBusiness.push({ 
+            ...claim, 
+            submittedAt: claim.submittedAt?.toDate ? claim.submittedAt.toDate() : new Date(claim.submittedAt),
+            reviewedAt: claim.reviewedAt?.toDate ? claim.reviewedAt.toDate() : claim.reviewedAt,
+            business: {
+              id: business.id,
+              name: business.name,
+              category: business.category,
+              city: business.city
+            }
+          });
+        }
+      }
+
+      return claimsWithBusiness.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime());
+    } catch (error) {
+      console.error('Error getting claims for user:', error);
+      return [];
+    }
+  }
+
+  async updateClaim(claimId: number, updateData: Partial<InsertClaim>): Promise<Claim | null> {
+    try {
+      const claimRef = db.collection('claims').doc(claimId.toString());
+      const claimDoc = await claimRef.get();
+
+      if (!claimDoc.exists) return null;
+
+      await claimRef.update(updateData);
+
+      const updatedDoc = await claimRef.get();
+      const data = updatedDoc.data()!;
+      return {
+        id: claimId,
+        ...data,
+        submittedAt: data.submittedAt?.toDate ? data.submittedAt.toDate() : new Date(data.submittedAt),
+        reviewedAt: data.reviewedAt?.toDate ? data.reviewedAt.toDate() : data.reviewedAt
+      } as Claim;
+    } catch (error) {
+      console.error('Error updating claim:', error);
+      return null;
+    }
+  }
+
+  async deleteClaim(claimId: number): Promise<boolean> {
+    try {
+      const claimRef = db.collection('claims').doc(claimId.toString());
+      const claimDoc = await claimRef.get();
+
+      if (!claimDoc.exists) return false;
+
+      await claimRef.delete();
+      return true;
+    } catch (error) {
+      console.error('Error deleting claim:', error);
+      return false;
+    }
   }
 
   async updateClaimStatus(id: number, status: "approved" | "rejected"): Promise<Claim | undefined> {

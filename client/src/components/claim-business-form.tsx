@@ -42,13 +42,14 @@ export function ClaimBusinessForm({
         description: 'Business claim submitted successfully! We will review your request.',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/businesses', businessId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/claims`] });
       onOpenChange(false);
       resetForm();
     },
     onError: (error: any) => {
       toast({
         title: t('common.error'),
-        description: error.message,
+        description: error.message || 'Failed to submit claim',
         variant: 'destructive',
       });
     },

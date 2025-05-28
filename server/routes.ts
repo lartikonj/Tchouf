@@ -207,6 +207,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/users/:id/claims", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const claims = await storage.getClaimsForUser(userId);
+      res.json(claims);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/users/:userId/claims/business/:businessId", async (req, res, next) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const businessId = parseInt(req.params.businessId);
+      const claim = await storage.getUserClaimForBusiness(userId, businessId);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      res.json(claim);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.put("/api/claims/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const claimData = insertClaimSchema.parse(req.body);
+      const claim = await storage.updateClaim(id, claimData);
+      if (!claim) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      res.json(claim);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.delete("/api/claims/:id", async (req, res, next) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteClaim(id);
+      if (!success) {
+        return res.status(404).json({ message: "Claim not found" });
+      }
+      res.json({ message: "Claim deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.get("/api/users/:userId/reviews/business/:businessId", async (req, res, next) => {
     try {
       const userId = parseInt(req.params.userId);

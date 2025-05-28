@@ -55,6 +55,22 @@ interface ReviewWithBusiness {
   };
 }
 
+interface ClaimWithBusiness {
+  id: number;
+  businessId: number;
+  userId: number;
+  proofUrl: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  business: {
+    id: number;
+    name: string;
+    category: string;
+    city: string;
+  };
+}
+
 export default function UserProfile() {
   const { t } = useTranslation();
   const { user, signOut } = useAuth();
@@ -67,6 +83,8 @@ export default function UserProfile() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [editReviewOpen, setEditReviewOpen] = useState(false);
   const [selectedReview, setSelectedReview] = useState<ReviewWithBusiness | null>(null);
+  const [selectedClaim, setSelectedClaim] = useState<ClaimWithBusiness | null>(null);
+  const [claimDeleteDialogOpen, setClaimDeleteDialogOpen] = useState(false);
 
   // Fetch user's businesses
   const { data: userBusinesses, isLoading: businessesLoading } = useQuery({
@@ -77,6 +95,12 @@ export default function UserProfile() {
   // Fetch user's reviews
   const { data: userReviews, isLoading: reviewsLoading } = useQuery({
     queryKey: [`/api/users/${user?.id}/reviews`],
+    enabled: !!user?.id,
+  });
+
+  // Fetch user's claims
+  const { data: userClaims, isLoading: claimsLoading } = useQuery({
+    queryKey: [`/api/users/${user?.id}/claims`],
     enabled: !!user?.id,
   });
 
@@ -138,6 +162,33 @@ export default function UserProfile() {
     },
   });
 
+  // Delete claim mutation
+  const deleteClaimMutation = useMutation({
+    mutationFn: async (claimId: number) => {
+      const response = await fetch(`/api/claims/${claimId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error('Failed to delete claim');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/claims`] });
+      setClaimDeleteDialogOpen(false);
+      setSelectedClaim(null);
+      toast({
+        title: "Success",
+        description: "Claim deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete claim",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Delete account mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
@@ -178,6 +229,28 @@ export default function UserProfile() {
 
   const handleDeleteReview = (reviewId: number) => {
     deleteReviewMutation.mutate(reviewId);
+  };
+
+  const handleDeleteClaim = (claim: ClaimWithBusiness) => {
+    setSelectedClaim(claim);
+    setClaimDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteClaim = () => {
+    if (selectedClaim) {
+      deleteClaimMutation.mutate(selectedClaim.id);
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-500';
+      case 'rejected':
+        return 'bg-red-500';
+      default:
+        return 'bg-yellow-500';
+    }
   };
 
   const renderStars = (rating: number) => {
@@ -285,7 +358,7 @@ export default function UserProfile() {
 
         {/* Tabs */}
         <Tabs defaultValue="businesses" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="businesses">
               <Building className="h-4 w-4 mr-2" />
               My Businesses
@@ -293,6 +366,10 @@ export default function UserProfile() {
             <TabsTrigger value="reviews">
               <Star className="h-4 w-4 mr-2" />
               My Reviews
+            </TabsTrigger>
+            <TabsTrigger value="claims">
+              <User className="h-4 w-4 mr-2" />
+              My Claims
             </TabsTrigger>
             <TabsTrigger value="settings">
               <Settings className="h-4 w-4 mr-2" />
@@ -441,6 +518,93 @@ export default function UserProfile() {
             </Card>
           </TabsContent>
 
+          {/* Claims Tab */}
+          <TabsContent value="claims">
+            <Card>
+              <CardHeader>
+                <CardTitle>My Claims</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {claimsLoading ? (
+                  <div className="text-center py-8">Loading claims...</div>
+                ) : userClaims && userClaims.length > 0 ? (
+                  <div className="space-y-6">
+                    {userClaims.map((claim: ClaimWithBusiness) => (
+                      <Card key={claim.id} className="border-l-4 border-l-[#D32F2F]">
+                        <CardContent className="p-6">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center mb-2">
+                                <h3 className="font-semibold text-lg mr-3">
+                                  {claim.business.name}
+                                </h3>
+                                <Badge className={getStatusBadgeColor(claim.status)}>
+                                  {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
+                                </Badge>
+                              </div>
+                              <p className="text-gray-600 mb-2">
+                                {claim.business.category} • {claim.business.city}
+                              </p>
+                              <div className="mb-3">
+                                <p className="text-sm text-gray-600 mb-2">Proof Document:</p>
+                                <a 
+                                  href={claim.proofUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 underline"
+                                >
+                                  View Proof Document
+                                </a>
+                              </div>
+                              <div className="text-sm text-gray-500 space-y-1">
+                                <p>Submitted: {new Date(claim.submittedAt).toLocaleDateString()}</p>
+                                {claim.reviewedAt && (
+                                  <p>Reviewed: {new Date(claim.reviewedAt).toLocaleDateString()}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Link href={`/business/${claim.businessId}`}>
+                                <Button size="sm" variant="outline">
+                                  View Business
+                                </Button>
+                              </Link>
+                              {claim.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleDeleteClaim(claim)}
+                                  disabled={deleteClaimMutation.isPending}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      No claims yet
+                    </h3>
+                    <p className="text-gray-600 mb-4">
+                      You haven't submitted any business claims yet.
+                    </p>
+                    <Link href="/">
+                      <Button className="bg-[#D32F2F] hover:bg-[#B71C1C]">
+                        Browse Businesses
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Settings Tab */}
           <TabsContent value="settings">
             <Card>
@@ -540,6 +704,40 @@ export default function UserProfile() {
           isEdit={true}
         />
       )}
+
+      {/* Delete Claim Confirmation Dialog */}
+      <Dialog open={claimDeleteDialogOpen} onOpenChange={setClaimDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+              Delete Claim
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this claim for "{selectedClaim?.business.name}"? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setClaimDeleteDialogOpen(false);
+                setSelectedClaim(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={confirmDeleteClaim}
+              disabled={deleteClaimMutation.isPending}
+            >
+              {deleteClaimMutation.isPending ? 'Deleting...' : 'Delete Claim'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
