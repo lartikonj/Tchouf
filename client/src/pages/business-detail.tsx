@@ -114,7 +114,7 @@ export default function BusinessDetail() {
   });
 
   const handleLikeReview = (reviewId: number) => {
-    if (!currentUser) {
+    if (!user || !currentUser) {
       toast({
         title: "Sign in required",
         description: "Please sign in to like reviews",
@@ -122,7 +122,7 @@ export default function BusinessDetail() {
       });
       return;
     }
-    likeMutation.mutate({ reviewId, userId: currentUser.id });
+    likeMutation.mutate({ reviewId, userId: currentUser.id || user.id });
   };
 
   const handleReportReview = (reviewId: number) => {
@@ -359,7 +359,7 @@ export default function BusinessDetail() {
                               <span>{review.likeCount || 0}</span>
                             </Button>
 
-                            {currentUser && currentUser.id !== review.userId && (
+                            {user && currentUser && (currentUser.id !== review.userId || user.id !== review.userId) && (
                               <Button
                                 variant="ghost"
                                 size="sm"
