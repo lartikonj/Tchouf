@@ -18,6 +18,7 @@ interface AuthUser {
   email: string;
   displayName?: string;
   photoURL?: string;
+  isAdmin?: boolean;
 }
 
 export function useAuth() {

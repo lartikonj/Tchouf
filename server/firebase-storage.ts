@@ -53,6 +53,9 @@ export class FirebaseStorage implements IStorage {
       const user: User = {
         ...insertUser,
         id: newId,
+        displayName: insertUser.displayName || null,
+        photoURL: insertUser.photoURL || null,
+        isAdmin: false,
         createdAt: new Date(),
       };
       
@@ -109,20 +112,19 @@ export class FirebaseStorage implements IStorage {
   }
 
   async searchBusinesses(query: string, city?: string, category?: string): Promise<Business[]> {
-    let businessQuery = db.collection('businesses').orderBy('createdAt', 'desc');
+    // Get all businesses and filter on client side to avoid index requirements
+    const snapshot = await db.collection('businesses').get();
+    let businesses = snapshot.docs.map(doc => doc.data() as Business);
     
+    // Client-side filtering
     if (city) {
-      businessQuery = businessQuery.where('city', '==', city);
+      businesses = businesses.filter(business => business.city === city);
     }
     
     if (category) {
-      businessQuery = businessQuery.where('category', '==', category);
+      businesses = businesses.filter(business => business.category === category);
     }
     
-    const snapshot = await businessQuery.get();
-    let businesses = snapshot.docs.map(doc => doc.data() as Business);
-    
-    // Client-side filtering for text search (Firestore doesn't support full-text search)
     if (query) {
       const lowerQuery = query.toLowerCase();
       businesses = businesses.filter(business => 
@@ -131,7 +133,7 @@ export class FirebaseStorage implements IStorage {
       );
     }
     
-    return businesses;
+    return businesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async createBusiness(insertBusiness: InsertBusiness): Promise<Business> {
@@ -146,6 +148,11 @@ export class FirebaseStorage implements IStorage {
       const business: Business = {
         ...insertBusiness,
         id: newId,
+        email: insertBusiness.email || null,
+        description: insertBusiness.description || null,
+        phone: insertBusiness.phone || null,
+        website: insertBusiness.website || null,
+        photos: insertBusiness.photos || [],
         avgRating: 0,
         reviewCount: 0,
         verified: false,
@@ -246,6 +253,8 @@ export class FirebaseStorage implements IStorage {
       const review: Review = {
         ...insertReview,
         id: newId,
+        comment: insertReview.comment || null,
+        photoUrl: insertReview.photoUrl || null,
         createdAt: new Date(),
       };
       
@@ -325,6 +334,7 @@ export class FirebaseStorage implements IStorage {
         ...insertClaim,
         id: newId,
         status: "pending",
+        proofUrl: insertClaim.proofUrl || null,
         submittedAt: new Date(),
       };
       

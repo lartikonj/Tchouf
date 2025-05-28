@@ -74,6 +74,22 @@ export default function AdminDashboard() {
     );
   }
 
+  if (!user.isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <h1 className="text-2xl font-bold mb-4 text-red-600">Admin Access Required</h1>
+            <p className="text-gray-600 mb-4">You don't have permission to access the admin dashboard.</p>
+            <Link href="/">
+              <Button>Go Home</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
