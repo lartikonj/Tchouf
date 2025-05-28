@@ -263,31 +263,42 @@ export default function UserProfile() {
   // Update profile mutation
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: { firstName?: string; lastName?: string; displayName?: string }) => {
-      // Filter out undefined values but allow empty strings for displayName
-      const cleanData = Object.fromEntries(
-        Object.entries(profileData).filter(([key, value]) => {
-          if (key === 'displayName') {
-            return value !== undefined && value !== null;
+      try {
+        // Filter out undefined values but allow empty strings for displayName
+        const cleanData = Object.fromEntries(
+          Object.entries(profileData).filter(([key, value]) => {
+            if (key === 'displayName') {
+              return value !== undefined && value !== null;
+            }
+            return value !== undefined && value !== null && value !== '';
+          })
+        );
+
+        console.log('Sending profile update:', cleanData);
+
+        const response = await fetch(`/api/users/uid/${user?.uid}/profile`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(cleanData),
+        });
+
+        if (!response.ok) {
+          let errorMessage = 'Failed to update profile';
+          try {
+            const error = await response.json();
+            errorMessage = error.message || errorMessage;
+          } catch {
+            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
           }
-          return value !== undefined && value !== null && value !== '';
-        })
-      );
-
-      console.log('Sending profile update:', cleanData);
-
-      const response = await fetch(`/api/users/uid/${user?.uid}/profile`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(cleanData),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
+          throw new Error(errorMessage);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Profile update error:', error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/uid/${user?.uid}`] });

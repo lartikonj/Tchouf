@@ -116,20 +116,39 @@ export default function AddBusiness() {
 
   useEffect(() => {
     if (businessData) {
-      // Pre-fill the form with business data
-      form.setValue('name', businessData.name);
-      form.setValue('category', businessData.category);
-      form.setValue('description', businessData.description || '');
-      form.setValue('city', businessData.city);
-      form.setValue('address', businessData.address);
-      form.setValue('phone', businessData.phone || '');
-      form.setValue('email', businessData.email || '');
-      form.setValue('website', businessData.website || '');
-      form.setValue('location', businessData.location || '');
-      // Assuming businessData.photos is an array of URLs
-      setPhotoUrls(businessData.photos || []);
+      try {
+        // Pre-fill the form with business data
+        form.setValue('name', businessData.name || '');
+        
+        // Validate category exists in our list before setting it
+        const categoryValue = businessData.category ? businessData.category.toLowerCase() : '';
+        const validCategory = categories.find(cat => cat.toLowerCase() === categoryValue);
+        form.setValue('category', validCategory ? categoryValue : '');
+        
+        form.setValue('description', businessData.description || '');
+        
+        // Validate city exists in our list before setting it
+        const validCity = algerianCities.find(city => city === businessData.city);
+        form.setValue('city', validCity || '');
+        
+        form.setValue('address', businessData.address || '');
+        form.setValue('phone', businessData.phone || '');
+        form.setValue('email', businessData.email || '');
+        form.setValue('website', businessData.website || '');
+        form.setValue('location', businessData.location || '');
+        
+        // Set photo URLs
+        setPhotoUrls(businessData.photos || []);
+      } catch (error) {
+        console.error('Error pre-filling form data:', error);
+        toast({
+          title: "Warning",
+          description: "Some business data could not be loaded properly",
+          variant: "destructive",
+        });
+      }
     }
-  }, [businessData, form]);
+  }, [businessData, form, toast]);
 
   const createBusinessMutation = useMutation({
     mutationFn: async (businessData: any) => {
@@ -323,7 +342,7 @@ export default function AddBusiness() {
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
                   <Select 
-                    value={form.watch('category')}
+                    value={form.watch('category') || ''}
                     onValueChange={(value) => {
                       form.setValue('category', value);
                       form.clearErrors('category');
@@ -362,7 +381,7 @@ export default function AddBusiness() {
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
                     <Select 
-                      value={form.watch('city')}
+                      value={form.watch('city') || ''}
                       onValueChange={(value) => {
                         form.setValue('city', value);
                         form.clearErrors('city');
