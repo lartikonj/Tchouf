@@ -47,7 +47,7 @@ export function Header() {
             </Button>
           </Link>
           {user.isAdmin && (
-            <Link href="/admin-dashboard" className="w-full">
+            <Link href="/admin" className="w-full">
               <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
                 <User className="mr-2 h-4 w-4" />
                 Admin Dashboard
@@ -151,7 +151,7 @@ export function Header() {
                       </DropdownMenuItem>
                       {user.isAdmin && (
                         <DropdownMenuItem asChild>
-                          <Link href="/admin-dashboard">
+                          <Link href="/admin">
                             <User className="mr-2 h-4 w-4" />
                             <span>Admin Dashboard</span>
                           </Link>
