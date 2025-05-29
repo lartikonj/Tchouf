@@ -459,8 +459,8 @@ export default function BusinessDetail() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
-                  {/* Edit Business Info - Only visible to verified business owners */}
-                  {isBusinessOwner && business.verified && (
+                  {/* Edit Business Info - Visible to all business owners */}
+                  {isBusinessOwner && (
                     <Link href={`/add-business?edit=${business.id}`}>
                       <Button className="w-full bg-[#FF6F00] hover:bg-[#E65100]">
                         <Edit className="h-4 w-4 mr-2" />
