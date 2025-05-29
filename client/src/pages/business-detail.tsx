@@ -32,14 +32,26 @@ export default function BusinessDetail() {
   const { toast } = useToast();
   const params = useParams();
   const identifier = params.identifier || '';
-  const businessIdInt = /^\d+$/.test(identifier) ? parseInt(identifier) : 0;
+  
+  console.log('Business detail identifier:', identifier);
 
   const [reviewFormOpen, setReviewFormOpen] = useState(false);
   const [claimFormOpen, setClaimFormOpen] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
-  // Get businessId from params
+  // Fetch business data using the identifier (could be ID or slug)
+  const { data: business, isLoading, error } = useQuery({
+    queryKey: ['business', identifier],
+    queryFn: async () => {
+      console.log('Fetching business with identifier:', identifier);
+      const response = await apiRequest('GET', `/api/businesses/${identifier}`);
+      const data = await response.json();
+      console.log('Business data received:', data);
+      return data;
+    },
+    enabled: !!identifier,
+  });
 
   // Early return after all hooks are called
   if (!businessIdInt || isNaN(businessIdInt)) {

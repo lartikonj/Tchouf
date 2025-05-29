@@ -316,12 +316,8 @@ export default function AddBusiness() {
         description: 'Business ' + (isEditMode ? 'updated' : 'added') + ' successfully!',
       });
 
-      // Navigate to the new business page using slug if available
-      if (result.slug) {
-        navigate(`/business/${result.slug}`);
-      } else {
-        navigate(`/business/${result.id}`);
-      }
+      // Navigate to the new business page using ID (more reliable)
+      navigate(`/business/${result.id}`);
 
     } catch (error) {
       console.error('Error submitting business:', error);
