@@ -52,7 +52,7 @@ export default function Home() {
     const params = new URLSearchParams();
     if (query) params.set('q', query);
     if (location) params.set('city', location);
-    
+
     navigate(`/search?${params.toString()}`);
   };
 
@@ -98,37 +98,39 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#D32F2F] to-red-600 text-white py-16">
+      <section className="bg-gradient-to-r from-[#D32F2F] to-red-600 text-white py-12 md:py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">{t('hero.title')}</h2>
-          <p className="text-xl mb-8 text-red-100">{t('hero.subtitle')}</p>
-          
-          <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
+            {t('hero.title')}
+          </h2>
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 max-w-3xl mx-auto px-2">
+            {t('hero.subtitle')}
+          </p>
+
+          <div className="max-w-2xl mx-auto px-2">
             <SearchBar onSearch={handleSearch} />
           </div>
         </div>
       </section>
 
       {/* Categories Section */}
-      <section className="py-16 bg-white">
+      <section className="py-8 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h3 className="text-3xl font-bold text-gray-900 text-center mb-12">
+          <h3 className="text-2xl md:text-3xl font-bold text-gray-900 text-center mb-8 md:mb-12">
             {t('categories.title')}
           </h3>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6">
             {categories.map((category) => {
               const IconComponent = category.icon;
               return (
                 <div
                   key={category.value}
-                  className="text-center group cursor-pointer"
+                  className="flex flex-col items-center p-3 md:p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow min-h-[100px] md:min-h-[120px]"
                   onClick={() => handleCategorySelect(category.value)}
                 >
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-[#D32F2F] group-hover:text-white transition-colors">
-                    <IconComponent className="h-8 w-8 text-gray-600 group-hover:text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">
+                  <IconComponent className="h-8 w-8 md:h-12 md:w-12 text-gray-600 group-hover:text-white mb-2 md:mb-4" />
+                  <span className="text-gray-900 font-medium text-center text-xs md:text-sm lg:text-base leading-tight">
                     {t(category.name)}
                   </span>
                 </div>
@@ -139,29 +141,29 @@ export default function Home() {
       </section>
 
       {/* Featured Businesses Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-8 md:py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900">{t('business.featured')}</h3>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 md:mb-12 gap-4">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-900">{t('business.featured')}</h3>
             <Link href="/search">
-              <Button variant="link" className="text-[#D32F2F] hover:text-red-700 font-medium">
+              <Button variant="link" className="flex items-center text-sm md:text-base text-[#D32F2F] hover:text-red-700 font-medium">
                 {t('business.viewAll')} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </Link>
           </div>
-          
+
           {businessesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
-                  <div className="h-48 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 h-32 md:h-48 rounded-lg mb-4"></div>
+                  <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                  <div className="bg-gray-200 h-4 rounded w-2/3"></div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {featuredBusinesses?.map((business: any) => (
                 <BusinessCard
                   key={business.id}
@@ -182,7 +184,7 @@ export default function Home() {
           <h3 className="text-3xl font-bold text-gray-900 text-center mb-12">
             {t('reviews.recent')}
           </h3>
-          
+
           {reviewsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {Array.from({ length: 3 }).map((_, i) => (
@@ -224,11 +226,11 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <p className="text-gray-700 mb-3 line-clamp-3">
                       {review.comment || "Great experience!"}
                     </p>
-                    
+
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <span>Business Review</span>
                       <span>{new Date(review.createdAt).toLocaleDateString()}</span>
@@ -246,7 +248,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <h3 className="text-3xl font-bold mb-6">{t('business.addYourBusiness')}</h3>
           <p className="text-xl mb-8 text-green-100">{t('business.joinThousands')}</p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/add-business">
               <Button className="bg-white text-[#388E3C] px-8 py-3 rounded-xl font-semibold hover:bg-gray-100 transition-colors">

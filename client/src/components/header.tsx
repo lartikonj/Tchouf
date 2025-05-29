@@ -1,115 +1,144 @@
-import { useState } from 'react';
+import React from 'react';
+import { Link, useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'wouter';
-import { Eye, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { LanguageSelector } from '@/components/language-selector';
 import { AuthModal } from '@/components/auth-modal';
+import { LanguageSelector } from '@/components/language-selector';
+import { MobileMenu } from '@/components/mobile-menu';
 import { useAuth } from '@/hooks/use-auth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { User, LogOut, Plus, Menu } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 export function Header() {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [location] = useLocation();
+  const isMobile = useIsMobile();
 
-  const handleSignIn = () => {
-    setAuthMode('login');
-    setAuthModalOpen(true);
-  };
-
-  const handleSignUp = () => {
-    setAuthMode('signup');
-    setAuthModalOpen(true);
-  };
+  const MobileNavContent = () => (
+    <>
+      <Link href="/search" className="w-full">
+        <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
+          {t('nav.search')}
+        </Button>
+      </Link>
+      <Link href="/add-business" className="w-full">
+        <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
+          {t('nav.addBusiness')}
+        </Button>
+      </Link>
+      {user && (
+        <>
+          <Link href="/profile" className="w-full">
+            <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
+              <User className="mr-2 h-4 w-4" />
+              {t('nav.profile')}
+            </Button>
+          </Link>
+          <Button 
+            variant="ghost" 
+            className="w-full justify-start text-gray-700 hover:text-gray-900"
+            onClick={logout}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            {t('nav.logout')}
+          </Button>
+        </>
+      )}
+    </>
+  );
 
   return (
-    <>
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo and Brand */}
-            <Link href="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#D32F2F] rounded-lg flex items-center justify-center">
-                <Eye className="text-white text-xl" size={24} />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">{t('tchouf.title')}</h1>
-            </Link>
-
-            {/* Right side */}
-            <div className="flex items-center space-x-4">
-              <LanguageSelector />
-
-              {/* User Menu */}
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user.photoURL || ''} alt={user.displayName || user.email} />
-                        <AvatarFallback>
-                          {user.displayName ? user.displayName[0].toUpperCase() : user.email[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuItem className="flex flex-col items-start">
-                      <div className="font-medium">{user.displayName || 'User'}</div>
-                      <div className="text-xs text-muted-foreground">{user.email}</div>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile">Profile</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/add-business">Add Business</Link>
-                    </DropdownMenuItem>
-                    {user.isAdmin && (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin">Admin Dashboard</Link>
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem onClick={logout}>
-                      {t('auth.signOut')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    onClick={handleSignIn}
-                    className="text-gray-600 hover:text-[#D32F2F] transition-colors"
-                  >
-                    <User className="h-5 w-5 mr-1" />
-                    {t('auth.signIn')}
-                  </Button>
-                  <Button
-                    onClick={handleSignUp}
-                    className="bg-[#D32F2F] text-white hover:bg-[#B71C1C] transition-colors"
-                  >
-                    {t('auth.signUp')}
-                  </Button>
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 md:h-16">
+          <div className="flex items-center">
+            <Link href="/">
+              <div className="flex items-center space-x-2">
+                <div className="w-6 h-6 md:w-8 md:h-8 bg-gradient-to-r from-red-500 to-green-500 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-sm md:text-lg">B</span>
                 </div>
-              )}
+                <span className="text-lg md:text-xl font-bold text-gray-900 hidden xs:inline">BusinessHub</span>
+              </div>
+            </Link>
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-8">
+            <Link href="/search">
+              <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
+                {t('nav.search')}
+              </Button>
+            </Link>
+            <Link href="/add-business">
+              <Button variant="ghost" className="text-gray-700 hover:text-gray-900">
+                {t('nav.addBusiness')}
+              </Button>
+            </Link>
+          </nav>
+
+          <div className="flex items-center space-x-2 md:space-x-4">
+            {/* Language Selector - Hidden on very small screens */}
+            <div className="hidden sm:block">
+              <LanguageSelector />
             </div>
+
+            {/* Mobile Menu */}
+            {isMobile && (
+              <MobileMenu>
+                <MobileNavContent />
+                <div className="border-t pt-4">
+                  <LanguageSelector />
+                </div>
+              </MobileMenu>
+            )}
+
+            {/* Desktop User Menu */}
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>{t('nav.profile')}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/add-business">
+                      <Plus className="mr-2 h-4 w-4" />
+                      <span>{t('nav.addBusiness')}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{t('nav.logout')}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <AuthModal />
+            )}
           </div>
         </div>
-      </header>
-
-      <AuthModal
-        open={authModalOpen}
-        onOpenChange={setAuthModalOpen}
-        mode={authMode}
-        onModeChange={setAuthMode}
-      />
-    </>
+      </div>
+    </header>
   );
 }

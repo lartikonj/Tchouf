@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Star, MapPin } from 'lucide-react';
 import { Business } from '@shared/schema';
+import { Building } from 'lucide-react'; // Added Building icon for placeholder
 
 interface BusinessCardProps {
   business: Business;
@@ -12,110 +13,73 @@ interface BusinessCardProps {
   onClaimBusiness?: (businessId: number) => void;
 }
 
-export function BusinessCard({ 
-  business, 
-  onWriteReview, 
-  onViewDetails, 
-  onClaimBusiness 
-}: BusinessCardProps) {
+export function BusinessCard({ business, onWriteReview, onClaimBusiness }: BusinessCardProps) {
   const { t } = useTranslation();
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(rating) 
-            ? 'fill-[#FF6F00] text-[#FF6F00]' 
-            : i < rating 
-              ? 'fill-[#FF6F00]/50 text-[#FF6F00]' 
-              : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
-
-  const defaultPhoto = business.photos?.[0] || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=200&fit=crop';
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="h-48 overflow-hidden">
-        <img
-          src={defaultPhoto}
-          alt={business.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
+      <CardContent className="p-0">
+        <div className="aspect-video md:aspect-video bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center">
+          <Building className="h-8 w-8 md:h-12 md:w-12 text-gray-400" />
+        </div>
 
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-2">
-          <h4 className="text-xl font-semibold text-gray-900 line-clamp-1">
-            {business.name}
-          </h4>
-          <div className="flex items-center space-x-2">
+        <div className="p-4 md:p-6">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900 line-clamp-2 pr-2">
+              {business.name}
+            </h3>
             {business.verified && (
-              <Badge className="bg-[#388E3C] text-white">
+              <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800 shrink-0 text-xs">
                 {t('business.verified')}
               </Badge>
             )}
-            {!business.claimedBy && (
-              <Badge variant="outline" className="border-yellow-500 text-yellow-700">
-                {t('business.pending')}
-              </Badge>
+          </div>
+
+          <p className="text-sm md:text-base text-gray-600 mb-3">{business.category}</p>
+
+          <div className="flex items-center mb-3 md:mb-4">
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-3 w-3 md:h-4 md:w-4 ${
+                    i < Math.floor(business.avgRating || 0)
+                      ? 'text-yellow-400 fill-current'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="ml-2 text-xs md:text-sm text-gray-600">
+              ({business.reviewCount || 0} {t('business.reviews')})
+            </span>
+          </div>
+
+          <div className="flex items-center text-gray-600 mb-3 md:mb-4">
+            <MapPin className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+            <span className="text-xs md:text-sm">{business.city}</span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onWriteReview?.()}
+              className="flex-1 text-xs md:text-sm h-8 md:h-9"
+            >
+              {t('business.writeReview')}
+            </Button>
+            {!business.verified && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onClaimBusiness?.()}
+                className="flex-1 text-xs md:text-sm h-8 md:h-9"
+              >
+                {t('business.claim')}
+              </Button>
             )}
           </div>
-        </div>
-
-        <p className="text-gray-600 mb-3 line-clamp-1">{business.category}</p>
-
-        {/* Rating */}
-        <div className="flex items-center mb-3">
-          <div className="flex">
-            {renderStars(business.avgRating)}
-          </div>
-          <span className="ml-2 text-gray-600 text-sm">
-            {business.avgRating.toFixed(1)} ({business.reviewCount} {t('reviews.rating')})
-          </span>
-        </div>
-
-        {/* Location */}
-        <div className="flex items-center text-gray-600 mb-4">
-          <MapPin className="h-4 w-4 mr-2" />
-          <span className="text-sm line-clamp-1">
-            {business.address}, {business.city}
-          </span>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-3">
-          <Button
-            onClick={() => onWriteReview?.(business.id)}
-            className="flex-1 bg-[#D32F2F] text-white hover:bg-[#B71C1C]"
-            size="sm"
-          >
-            {t('business.writeReview')}
-          </Button>
-
-          {/* Only show claim button if onClaimBusiness is provided and business is not claimed */}
-          {onClaimBusiness && !business.claimedBy ? (
-            <Button
-              onClick={() => onClaimBusiness(business.id)}
-              variant="outline"
-              className="flex-1 border-[#D32F2F] text-[#D32F2F] hover:bg-red-50"
-              size="sm"
-            >
-              {t('business.claimBusiness')}
-            </Button>
-          ) : (
-            <Button
-              onClick={() => onViewDetails?.(business.slug || business.id.toString())}
-              variant="outline"
-              className="flex-1"
-              size="sm"
-            >
-              {t('business.viewDetails')}
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>
