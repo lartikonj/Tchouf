@@ -120,21 +120,23 @@ export default function AddBusiness() {
   }, [user?.id, form]);
 
   useEffect(() => {
-    if (businessData) {
+    if (businessData && isEditMode) {
       try {
+        console.log('Pre-filling form with business data:', businessData);
+        
         // Pre-fill the form with business data
         form.setValue('name', businessData.name || '');
         
         // Validate category exists in our list before setting it
         const categoryValue = businessData.category ? businessData.category.toLowerCase() : '';
         const validCategory = categories.find(cat => cat.toLowerCase() === categoryValue);
-        form.setValue('category', validCategory ? categoryValue : '');
+        form.setValue('category', validCategory || businessData.category || '');
         
         form.setValue('description', businessData.description || '');
         
         // Validate city exists in our list before setting it
         const validCity = algerianCities.find(city => city === businessData.city);
-        form.setValue('city', validCity || '');
+        form.setValue('city', validCity || businessData.city || '');
         
         form.setValue('address', businessData.address || '');
         form.setValue('phone', businessData.phone || '');
@@ -142,8 +144,13 @@ export default function AddBusiness() {
         form.setValue('website', businessData.website || '');
         form.setValue('location', businessData.location || '');
         
-        // Set photo URLs
+        // Set photo URLs from existing business
         setPhotoUrls(businessData.photos || []);
+        
+        // Force form to recognize the values are set
+        form.trigger();
+        
+        console.log('Form values after pre-fill:', form.getValues());
       } catch (error) {
         console.error('Error pre-filling form data:', error);
         toast({
@@ -153,7 +160,7 @@ export default function AddBusiness() {
         });
       }
     }
-  }, [businessData, form, toast]);
+  }, [businessData, isEditMode, form, toast]);
 
   const createBusinessMutation = useMutation({
     mutationFn: async (businessData: any) => {
@@ -316,8 +323,9 @@ export default function AddBusiness() {
         description: 'Business ' + (isEditMode ? 'updated' : 'added') + ' successfully!',
       });
 
-      // Navigate to the new business page using ID (more reliable)
-      navigate(`/business/${result.id}`);
+      // Navigate to the business page - use existing ID for edits, new ID for creates
+      const businessId = isEditMode ? editBusinessId : result.id;
+      navigate(`/business/${businessId}`);
 
     } catch (error) {
       console.error('Error submitting business:', error);
@@ -343,13 +351,30 @@ export default function AddBusiness() {
     setPhotoUrls(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Show loading state while checking business data in edit mode
+  if (isEditMode && isBusinessLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading Business Information</h1>
+            <p className="text-gray-600 mb-4">Please wait while we load the business details...</p>
+            <div className="animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
             <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-            <p className="text-gray-600 mb-4">Please sign in to add a business.</p>
+            <p className="text-gray-600 mb-4">Please sign in to {isEditMode ? 'edit' : 'add'} a business.</p>
             <Link href="/">
               <Button>Go Home</Button>
             </Link>
@@ -576,21 +601,7 @@ export default function AddBusiness() {
                 </div>
               </div>
 
-              {/* Debug Information */}
-              <div className="p-4 bg-gray-100 rounded-lg text-sm">
-                <h4 className="font-medium mb-2">Debug Info:</h4>
-                <p>User ID: {user?.id || 'Not available'}</p>
-                <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
-                <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
-                <p>Uploading: {uploading ? 'Yes' : 'No'}</p>
-                <p>Form Errors: {Object.keys(form.formState.errors).length > 0 ? Object.keys(form.formState.errors).join(', ') : 'None'}</p>
-                <p>Form Data: {JSON.stringify({
-                  name: form.watch('name'),
-                  category: form.watch('category'),
-                  city: form.watch('city'),
-                  address: form.watch('address')
-                })}</p>
-              </div>
+              
 
               {/* Submit */}
               <div className="flex space-x-4">
@@ -602,13 +613,11 @@ export default function AddBusiness() {
                 <Button 
                   type="submit" 
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50"
-                  disabled={uploading || isSubmitting}
-                  onClick={() => {
-                    console.log('Submit button clicked');
-                    console.log('Current form values:', form.getValues());
-                  }}
+                  disabled={uploading || isSubmitting || (isEditMode && isBusinessLoading)}
                 >
-                  {uploading ? t('common.uploading') : isSubmitting ? (isEditMode ? 'Updating Business...' : 'Creating Business...') : (isEditMode ? 'Update Business' : t('addBusiness.addButton'))}
+                  {uploading ? t('common.uploading') : 
+                   isSubmitting ? (isEditMode ? 'Updating Business...' : 'Creating Business...') : 
+                   (isEditMode ? 'Update Business Information' : t('addBusiness.addButton'))}
                 </Button>
               </div>
             </form>
