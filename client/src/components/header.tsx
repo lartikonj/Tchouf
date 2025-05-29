@@ -3,6 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { AuthModal } from '@/components/auth-modal';
+import { useState } from 'react';
 import { LanguageSelector } from '@/components/language-selector';
 import { MobileMenu } from '@/components/mobile-menu';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,6 +23,8 @@ export function Header() {
   const { user, logout } = useAuth();
   const [location] = useLocation();
   const isMobile = useIsMobile();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
 
   const MobileNavContent = () => (
     <>
@@ -35,7 +38,7 @@ export function Header() {
           {t('nav.addBusiness')}
         </Button>
       </Link>
-      {user && (
+      {user ? (
         <>
           <Link href="/profile" className="w-full">
             <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
@@ -52,6 +55,16 @@ export function Header() {
             {t('nav.logout')}
           </Button>
         </>
+      ) : (
+        <Button 
+          onClick={() => {
+            setAuthMode('login');
+            setAuthModalOpen(true);
+          }}
+          className="w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white"
+        >
+          {t('auth.signIn')}
+        </Button>
       )}
     </>
   );
@@ -102,43 +115,63 @@ export function Header() {
             )}
 
             {/* Desktop User Menu */}
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="text-xs">
-                        {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
+            {!isMobile && (
+              <>
+                {user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuItem asChild>
+                        <Link href="/profile">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>{t('nav.profile')}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/add-business">
+                          <Plus className="mr-2 h-4 w-4" />
+                          <span>{t('nav.addBusiness')}</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>{t('nav.logout')}</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Button 
+                    onClick={() => {
+                      setAuthMode('login');
+                      setAuthModalOpen(true);
+                    }}
+                    className="bg-[#D32F2F] hover:bg-[#B71C1C] text-white"
+                  >
+                    {t('auth.signIn')}
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>{t('nav.profile')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/add-business">
-                      <Plus className="mr-2 h-4 w-4" />
-                      <span>{t('nav.addBusiness')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>{t('nav.logout')}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <AuthModal />
+                )}
+              </>
             )}
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        open={authModalOpen}
+        onOpenChange={setAuthModalOpen}
+        mode={authMode}
+        onModeChange={setAuthMode}
+      />
     </header>
   );
 }
