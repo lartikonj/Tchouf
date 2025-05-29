@@ -193,39 +193,14 @@ export default function AddBusiness() {
       return;
     }
 
-    // Validate required fields
-    if (!data.name?.trim()) {
-      console.log('Validation failed: name missing');
+    // Let React Hook Form handle validation first
+    const isFormValid = await form.trigger();
+    
+    if (!isFormValid) {
+      console.log('Form validation failed:', form.formState.errors);
       toast({
         title: "Validation Error",
-        description: "Business name is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.category) {
-      console.log('Validation failed: category missing');
-      toast({
-        title: "Validation Error", 
-        description: "Category is required",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.city) {
-      console.log('Validation failed: city missing');
-      toast({
-        title: "Validation Error",
-        description: "City is required", 
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!data.address?.trim()) {
-      console.log('Validation failed: address missing');
-      toast({
-        title: "Validation Error",
-        description: "Address is required",
+        description: "Please check all required fields and fix any errors",
         variant: "destructive",
       });
       return;
@@ -385,9 +360,12 @@ export default function AddBusiness() {
           <CardContent className="p-6">
             <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
               console.log('Form validation errors:', errors);
+              // Find the first error message to show
+              const firstError = Object.values(errors)[0];
+              const errorMessage = firstError?.message || "Please check all required fields";
               toast({
                 title: "Form Validation Failed",
-                description: "Please check all required fields",
+                description: errorMessage,
                 variant: "destructive",
               });
             })} className="space-y-6">
