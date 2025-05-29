@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
@@ -103,7 +103,7 @@ export default function AddBusiness() {
       photos: [],
       createdBy: user?.id || 0,
     },
-    mode: 'onSubmit', // Only validate on submit to avoid conflicts
+    mode: 'onChange', // Enable real-time validation
   });
 
   // Set createdBy when user changes
@@ -407,24 +407,24 @@ export default function AddBusiness() {
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
-                  <Select 
-                    value={form.watch('category') || ''}
-                    onValueChange={(value) => {
-                      form.setValue('category', value, { shouldValidate: true });
-                      form.clearErrors('category');
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category} value={category.toLowerCase()}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="category"
+                    control={form.control}
+                    render={({ field }) => (
+                      <Select value={field.value || ''} onValueChange={field.onChange}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category.toLowerCase()}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                   {form.formState.errors.category && (
                     <p className="text-sm text-red-600">{form.formState.errors.category.message}</p>
                   )}
@@ -446,24 +446,24 @@ export default function AddBusiness() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="city">City *</Label>
-                    <Select 
-                      value={form.watch('city') || ''}
-                      onValueChange={(value) => {
-                        form.setValue('city', value, { shouldValidate: true });
-                        form.clearErrors('city');
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select city" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {algerianCities.map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Controller
+                      name="city"
+                      control={form.control}
+                      render={({ field }) => (
+                        <Select value={field.value || ''} onValueChange={field.onChange}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select city" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {algerianCities.map((city) => (
+                              <SelectItem key={city} value={city}>
+                                {city}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                     {form.formState.errors.city && (
                       <p className="text-sm text-red-600">{form.formState.errors.city.message}</p>
                     )}
