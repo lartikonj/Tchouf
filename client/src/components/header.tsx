@@ -46,6 +46,14 @@ export function Header() {
               {t('nav.profile')}
             </Button>
           </Link>
+          {user.isAdmin && (
+            <Link href="/admin-dashboard" className="w-full">
+              <Button variant="ghost" className="w-full justify-start text-gray-700 hover:text-gray-900">
+                <User className="mr-2 h-4 w-4" />
+                Admin Dashboard
+              </Button>
+            </Link>
+          )}
           <Button 
             variant="ghost" 
             className="w-full justify-start text-gray-700 hover:text-gray-900"
@@ -141,6 +149,14 @@ export function Header() {
                           <span>{t('nav.addBusiness')}</span>
                         </Link>
                       </DropdownMenuItem>
+                      {user.isAdmin && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/admin-dashboard">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Admin Dashboard</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={logout}>
                         <LogOut className="mr-2 h-4 w-4" />
