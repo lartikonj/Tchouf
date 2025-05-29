@@ -173,16 +173,29 @@ export default function AddBusiness() {
   });
 
   const onSubmit = async (data: FormData) => {
+    console.log('=== FORM SUBMISSION STARTED ===');
     console.log('Form submitted with data:', data);
     console.log('Current form state:', {
       isValid: form.formState.isValid,
       errors: form.formState.errors,
       isSubmitting,
-      uploading
+      uploading,
+      user: user
     });
+
+    // Check if user exists
+    if (!user?.id) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to add a business",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate required fields
     if (!data.name?.trim()) {
+      console.log('Validation failed: name missing');
       toast({
         title: "Validation Error",
         description: "Business name is required",
@@ -191,6 +204,7 @@ export default function AddBusiness() {
       return;
     }
     if (!data.category) {
+      console.log('Validation failed: category missing');
       toast({
         title: "Validation Error", 
         description: "Category is required",
@@ -199,6 +213,7 @@ export default function AddBusiness() {
       return;
     }
     if (!data.city) {
+      console.log('Validation failed: city missing');
       toast({
         title: "Validation Error",
         description: "City is required", 
@@ -207,6 +222,7 @@ export default function AddBusiness() {
       return;
     }
     if (!data.address?.trim()) {
+      console.log('Validation failed: address missing');
       toast({
         title: "Validation Error",
         description: "Address is required",
@@ -214,6 +230,8 @@ export default function AddBusiness() {
       });
       return;
     }
+
+    console.log('All validations passed, proceeding with submission...');
 
     try {
       setIsSubmitting(true);
@@ -365,7 +383,14 @@ export default function AddBusiness() {
           </CardHeader>
 
           <CardContent className="p-6">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+              console.log('Form validation errors:', errors);
+              toast({
+                title: "Form Validation Failed",
+                description: "Please check all required fields",
+                variant: "destructive",
+              });
+            })} className="space-y-6">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
@@ -550,6 +575,21 @@ export default function AddBusiness() {
                 </div>
               </div>
 
+              {/* Debug Information */}
+              <div className="p-4 bg-gray-100 rounded-lg text-sm">
+                <h4 className="font-medium mb-2">Debug Info:</h4>
+                <p>User ID: {user?.id || 'Not available'}</p>
+                <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
+                <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
+                <p>Uploading: {uploading ? 'Yes' : 'No'}</p>
+                <p>Form Data: {JSON.stringify({
+                  name: form.watch('name'),
+                  category: form.watch('category'),
+                  city: form.watch('city'),
+                  address: form.watch('address')
+                })}</p>
+              </div>
+
               {/* Submit */}
               <div className="flex space-x-4">
                 <Link href="/" className="flex-1">
@@ -561,6 +601,10 @@ export default function AddBusiness() {
                   type="submit" 
                   className="flex-1 bg-[#D32F2F] hover:bg-[#B71C1C] disabled:opacity-50"
                   disabled={uploading || isSubmitting}
+                  onClick={() => {
+                    console.log('Submit button clicked');
+                    console.log('Current form values:', form.getValues());
+                  }}
                 >
                   {uploading ? t('common.uploading') : isSubmitting ? (isEditMode ? 'Updating Business...' : 'Creating Business...') : (isEditMode ? 'Update Business' : t('addBusiness.addButton'))}
                 </Button>

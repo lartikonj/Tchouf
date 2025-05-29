@@ -237,24 +237,40 @@ export default function UserProfile() {
   // Delete account mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/users/${user?.id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to delete account');
-      return response.json();
+      try {
+        // First delete from our database
+        const response = await fetch(`/api/users/${user?.id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to delete account: ${errorText}`);
+        }
+        
+        // Then delete from Firebase Auth
+        if (auth.currentUser) {
+          await auth.currentUser.delete();
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Account deletion error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
-      signOut();
-      navigate('/');
       toast({
         title: "Account Deleted",
         description: "Your account has been permanently deleted",
       });
+      navigate('/');
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Delete account error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete account",
+        description: error.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
     },

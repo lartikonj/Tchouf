@@ -27,6 +27,7 @@ export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [processedUids, setProcessedUids] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -39,9 +40,12 @@ export function useAuth() {
           if (response.ok) {
             const dbUser = await response.json();
             setUser(dbUser);
-          } else if (response.status === 404 && !creatingUser) {
+            setProcessedUids(prev => new Set(prev).add(firebaseUser.uid));
+          } else if (response.status === 404 && !creatingUser && !processedUids.has(firebaseUser.uid)) {
             // User doesn't exist in our database, create them
+            console.log('Creating new user for UID:', firebaseUser.uid);
             setCreatingUser(true);
+            setProcessedUids(prev => new Set(prev).add(firebaseUser.uid));
             
             // Parse displayName into firstName and lastName
             const fullName = firebaseUser.displayName || '';
@@ -93,12 +97,13 @@ export function useAuth() {
       } else {
         setUser(null);
         setCreatingUser(false);
+        setProcessedUids(new Set()); // Clear processed UIDs on logout
       }
       setLoading(false);
     });
 
     return unsubscribe;
-  }, [creatingUser]);
+  }, [creatingUser, processedUids]);
 
   const signIn = async (email: string, password: string) => {
     try {
