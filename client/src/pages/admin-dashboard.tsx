@@ -26,28 +26,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   // State for business management
   const [businessFilter, setBusinessFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [editingBusiness, setEditingBusiness] = useState<any>(null);
-  const [editFormOpen, setEditFormOpen] = useState(false);
 
   // Fetch pending claims
   const { data: pendingClaims, isLoading } = useQuery({
@@ -73,10 +63,10 @@ export default function AdminDashboard() {
     const statusMatch = businessFilter === 'all' || 
       (businessFilter === 'verified' && business.verified) ||
       (businessFilter === 'pending' && !business.verified);
-    
+
     const categoryMatch = categoryFilter === 'all' || 
       business.category.toLowerCase() === categoryFilter.toLowerCase();
-    
+
     return statusMatch && categoryMatch;
   });
 
@@ -118,10 +108,6 @@ export default function AdminDashboard() {
         description: `Business ${action}d successfully!`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/businesses'] });
-      if (action === 'update') {
-        setEditFormOpen(false);
-        setEditingBusiness(null);
-      }
     },
     onError: (error: any) => {
       toast({
@@ -141,23 +127,12 @@ export default function AdminDashboard() {
   };
 
   const handleEditBusiness = (business: any) => {
-    setEditingBusiness(business);
-    setEditFormOpen(true);
+    navigate(`/admin/edit-business/${business.id}`);
   };
 
   const handleDeleteBusiness = (businessId: number) => {
     if (confirm('Are you sure you want to delete this business? This action cannot be undone.')) {
       businessActionMutation.mutate({ action: 'delete', businessId });
-    }
-  };
-
-  const handleUpdateBusiness = (data: any) => {
-    if (editingBusiness) {
-      businessActionMutation.mutate({ 
-        action: 'update', 
-        businessId: editingBusiness.id, 
-        data 
-      });
     }
   };
 
@@ -341,7 +316,7 @@ export default function AdminDashboard() {
                             {business.verified ? "Verified" : "Pending"}
                           </Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
                           <div>
                             <p><strong>Category:</strong> {business.category}</p>
@@ -481,7 +456,7 @@ export default function AdminDashboard() {
                             <Calendar className="h-4 w-4 mr-2" />
                             Submitted: {new Date(claim.submittedAt).toLocaleDateString()}
                           </div>
-                          
+
                           {claim.proofUrl && (
                             <div className="flex items-center text-sm text-gray-600">
                               <FileText className="h-4 w-4 mr-2" />
@@ -547,153 +522,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Edit Business Dialog */}
-      <Dialog open={editFormOpen} onOpenChange={setEditFormOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Business Information</DialogTitle>
-          </DialogHeader>
-          
-          {editingBusiness && (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target as HTMLFormElement);
-                const data = {
-                  name: formData.get('name'),
-                  description: formData.get('description'),
-                  category: formData.get('category'),
-                  phone: formData.get('phone'),
-                  website: formData.get('website'),
-                  address: formData.get('address'),
-                  city: formData.get('city'),
-                  openingHours: formData.get('openingHours'),
-                  verified: formData.get('verified') === 'on',
-                };
-                handleUpdateBusiness(data);
-              }}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Business Name</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    defaultValue={editingBusiness.name}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <Select name="category" defaultValue={editingBusiness.category}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="restaurants">Restaurants</SelectItem>
-                      <SelectItem value="shopping">Shopping</SelectItem>
-                      <SelectItem value="services">Services</SelectItem>
-                      <SelectItem value="health">Health</SelectItem>
-                      <SelectItem value="education">Education</SelectItem>
-                      <SelectItem value="automotive">Automotive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  name="description"
-                  defaultValue={editingBusiness.description}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    defaultValue={editingBusiness.phone}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="website">Website</Label>
-                  <Input
-                    id="website"
-                    name="website"
-                    type="url"
-                    defaultValue={editingBusiness.website}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="address">Address</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    defaultValue={editingBusiness.address}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    defaultValue={editingBusiness.city}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="openingHours">Opening Hours</Label>
-                <Textarea
-                  id="openingHours"
-                  name="openingHours"
-                  defaultValue={editingBusiness.openingHours}
-                  rows={2}
-                  placeholder="e.g., Mon-Fri: 9:00-18:00, Sat: 10:00-16:00"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="verified"
-                  name="verified"
-                  defaultChecked={editingBusiness.verified}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="verified">Verified Business</Label>
-              </div>
-
-              <div className="flex justify-end space-x-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditFormOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={businessActionMutation.isPending}
-                  className="bg-[#D32F2F] hover:bg-[#B71C1C]"
-                >
-                  {businessActionMutation.isPending ? 'Updating...' : 'Update Business'}
-                </Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

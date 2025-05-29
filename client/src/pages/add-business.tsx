@@ -583,7 +583,7 @@ export default function AddBusiness() {
                 <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
                 <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
                 <p>Uploading: {uploading ? 'Yes' : 'No'}</p>
-                <p>Form Errors: {JSON.stringify(form.formState.errors)}</p>
+                <p>Form Errors: {Object.keys(form.formState.errors).length > 0 ? Object.keys(form.formState.errors).join(', ') : 'None'}</p>
                 <p>Form Data: {JSON.stringify({
                   name: form.watch('name'),
                   category: form.watch('category'),
