@@ -469,8 +469,8 @@ export default function BusinessDetail() {
                     </Link>
                   )}
 
-                  {/* Claim Business - Only show if business is not verified/claimed and user is logged in */}
-                  {user && !isBusinessOwner && (!business.verified && !business.claimedBy) && (
+                  {/* Claim Business - Show for business owners and other logged in users when business is not verified/claimed */}
+                  {user && (!business.verified && !business.claimedBy) && (
                     <Button 
                       onClick={() => setClaimFormOpen(true)}
                       variant="outline"
