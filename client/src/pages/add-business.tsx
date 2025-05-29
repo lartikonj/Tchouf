@@ -51,12 +51,18 @@ const algerianCities = [
   'Djanet', 'M\'Ghair', 'El Ména'
 ];
 
-const formSchema = insertBusinessSchema.extend({
+const formSchema = z.object({
+  name: z.string().min(1, 'Business name is required'),
   category: z.string().min(1, 'Category is required'),
+  description: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   address: z.string().min(1, 'Address is required'),
-  name: z.string().min(1, 'Business name is required'),
   location: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  website: z.string().optional(),
+  photos: z.array(z.string()).optional().default([]),
+  createdBy: z.number(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -103,7 +109,7 @@ export default function AddBusiness() {
       photos: [],
       createdBy: user?.id || 0,
     },
-    mode: 'onChange', // Enable real-time validation
+    mode: 'onBlur', // Validate on blur instead of onChange
   });
 
   // Set createdBy when user changes
@@ -193,14 +199,35 @@ export default function AddBusiness() {
       return;
     }
 
-    // Let React Hook Form handle validation first
-    const isFormValid = await form.trigger();
-    
-    if (!isFormValid) {
-      console.log('Form validation failed:', form.formState.errors);
+    // Simple validation check for required fields
+    if (!data.name?.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please check all required fields and fix any errors",
+        description: "Business name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.category) {
+      toast({
+        title: "Validation Error",
+        description: "Category is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.city) {
+      toast({
+        title: "Validation Error",
+        description: "City is required",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!data.address?.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Address is required",
         variant: "destructive",
       });
       return;
@@ -560,6 +587,7 @@ export default function AddBusiness() {
                 <p>Form Valid: {form.formState.isValid ? 'Yes' : 'No'}</p>
                 <p>Is Submitting: {isSubmitting ? 'Yes' : 'No'}</p>
                 <p>Uploading: {uploading ? 'Yes' : 'No'}</p>
+                <p>Form Errors: {JSON.stringify(form.formState.errors)}</p>
                 <p>Form Data: {JSON.stringify({
                   name: form.watch('name'),
                   category: form.watch('category'),
