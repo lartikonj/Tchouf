@@ -40,12 +40,15 @@ export default function BusinessDetail() {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedReviewId, setSelectedReviewId] = useState<number | null>(null);
 
+  // Parse business ID from identifier
+  const businessIdInt = /^\d+$/.test(identifier) ? parseInt(identifier) : 0;
+
   // Fetch business data using the identifier (could be ID or slug)
   const { data: business, isLoading, error } = useQuery({
     queryKey: ['business', identifier],
     queryFn: async () => {
       console.log('Fetching business with identifier:', identifier);
-      const response = await apiRequest('GET', `/api/businesses/${identifier}`);
+      const response = await fetch(`/api/businesses/${identifier}`);
       const data = await response.json();
       console.log('Business data received:', data);
       return data;
@@ -54,16 +57,9 @@ export default function BusinessDetail() {
   });
 
   // Early return after all hooks are called
-  if (!businessIdInt || isNaN(businessIdInt)) {
+  if (!identifier) {
     return <div>Invalid business ID</div>;
   }
-
-  // Get business data
-  const { data: business, isLoading } = useQuery({
-    queryKey: ['business', identifier],
-    queryFn: () => fetch(`/api/businesses/${identifier}`).then(res => res.json()),
-    enabled: !!identifier,
-  });
 
   // Get reviews for the business
   const { data: reviews } = useQuery({
